@@ -1,0 +1,12 @@
+{
+    "LlmProvider": "OpenAI",
+    "LlmSettings": {
+        "ApiKey": "your-api-key-here",
+        "Model": "gpt-4"
+    },
+    "ManagedCodeDirectory": "./codebase",
+    "FastApiServer": {
+        "Host": "0.0.0.0",
+        "Port": 3000
+    }
+}
