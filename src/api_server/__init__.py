@@ -7,6 +7,8 @@ from core import Result, Unit
 import uvicorn
 import logging
 
+from api_server.dtos import CodeChangeRequest
+
 @dataclass(frozen=False)
 class ApiServer:
     _app: FastAPI
@@ -58,8 +60,3 @@ class ApiServer:
             self._logger.info(f"Received code change request: {request.change_strategic_description}")
             self._code_overseer.handle_code_change(request.change_strategic_description)
             return {"status": "code change received"}
-
-
-@dataclass(frozen=True)
-class CodeChangeRequest:
-    change_strategic_description: str
