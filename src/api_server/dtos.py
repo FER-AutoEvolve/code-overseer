@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+import pydantic.dataclasses
 
+def to_pascal_case(s: str) -> str:
+    return ''.join(word.capitalize() for word in s.split('_'))
 
-@dataclass(frozen=True)
+@pydantic.dataclasses.dataclass(config={"alias_generator": to_pascal_case, "populate_by_name": True}, frozen=True)
 class CodeChangeRequest:
     change_strategic_description: str

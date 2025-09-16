@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+import dataclasses
 from typing import Any
 from fastapi import FastAPI
 from code_overseeing import CodeOverseer
@@ -9,25 +9,17 @@ import logging
 
 from api_server.dtos import CodeChangeRequest
 
-@dataclass(frozen=False)
+@dataclasses.dataclass(frozen=False)
 class ApiServer:
-    _app: FastAPI
-    _code_overseer: CodeOverseer
     _apiConfiguration: FastApiConfiguration
+    _code_overseer: CodeOverseer
     _server: Any
-    _logger: logging.Logger
-
-    def __init__(self, api_config: FastApiConfiguration, code_overseer: CodeOverseer, logger: logging.Logger = logging.getLogger(__name__)) -> None:
-        self._apiConfiguration = api_config
-        self._code_overseer = code_overseer
-        self._logger = logger
-        self._app = FastAPI()
-        self._server = None
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+    _app: FastAPI = dataclasses.field(default_factory=lambda: FastAPI(), init=False)
 
     def start_server(self) -> Result[Unit]:
         '''Starts the FastAPI server'''
         try:
-            # create the FastAPI app and define the endpoints; start the server
             self._define_endpoints()
             self._server = uvicorn.run(self._app, host=self._apiConfiguration.host, port=self._apiConfiguration.port, log_config=None, log_level=self._logger.level)
             return Result.ok(Unit())
@@ -45,7 +37,6 @@ class ApiServer:
 
     def _define_endpoints(self) -> None:
         '''Defines the FastAPI endpoints'''
-
     
         @self._app.get("/health")
         async def _health():
@@ -58,5 +49,8 @@ class ApiServer:
         async def _code_change(request: CodeChangeRequest = Body(...)):
             '''Handles code change requests'''
             self._logger.info(f"Received code change request: {request.change_strategic_description}")
-            self._code_overseer.handle_code_change(request.change_strategic_description)
-            return {"status": "code change received"}
+            res_code_change = self._code_overseer.apply_code_change(request.change_strategic_description)
+            if res_code_change.is_err():
+                self._logger.error(f"Failed to apply code change: {res_code_change.unwrap_err()}")
+                return {"status": "error", "message": res_code_change.unwrap_err()}
+            return {"status": "Applied code change successfully"}

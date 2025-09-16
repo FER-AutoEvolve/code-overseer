@@ -8,6 +8,7 @@ from api_server import ApiServer
 from core import Result, Unit
 from code_overseeing import CodeOverseer
 from configuration import Configuration
+from prompting.openai import PromptManager
 
 def main(configuration_file_path: str) -> Result[Unit]:
     logging.info(f"Program starting with configuration file path: {configuration_file_path}")
@@ -24,11 +25,20 @@ def main(configuration_file_path: str) -> Result[Unit]:
 
     logging.info(f"Configuration file loaded successfully")
 
+    # Setup prompt manager
+    res_llm_openai_config = config.get_llm_openai_config()
+    if res_llm_openai_config.is_err():
+        logging.error(f"Failed to get OpenAI LLM configuration: {res_llm_openai_config.message}")
+        return Result.err(res_llm_openai_config.message)
+    llm_openai_config = res_llm_openai_config.unwrap()
+    
+    prompt_manager = PromptManager(llm_openai_config, logging.getLogger())
+
     # Set up the code overseer
-    code_overseer = CodeOverseer(config)
+    code_overseer = CodeOverseer(config.code_overseer_config, prompt_manager, logging.getLogger())
 
     # start the Fast API server
-    server = ApiServer(config.fast_api_configuration, code_overseer, logging.getLogger())
+    server = ApiServer(config.fast_api_config, code_overseer, logging.getLogger())
     res_server_start = server.start_server()
     if res_server_start.is_err():
         logging.error(f"Error starting the FastAPI server: {res_server_start.message}")
