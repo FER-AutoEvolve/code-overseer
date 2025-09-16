@@ -7,10 +7,12 @@ from core import Result
 from prompting.openai.configuration import OpenAiConfiguration
 
 class LlmProviders(Enum):
+    ''' Enumeration of supported LLM providers.'''
     OPENAI = "openai"
 
 @dataclasses.dataclass(frozen=True)
 class Configuration:
+    ''' Configuration for the entire application.'''
     llm_provider: LlmProviders
     llm_config: dict
     fast_api_config: FastApiConfiguration
@@ -18,6 +20,13 @@ class Configuration:
 
     @staticmethod
     def from_dict(config: dict) -> Result['Configuration']:
+        ''' 
+        Creates a Configuration object from a dictionary.
+        Args:
+            config (dict): Dictionary containing configuration data.
+            Returns:
+                Result[Configuration]: Result containing the Configuration object or an error message.
+        '''
         try:
             llm_config = config.get("Llm", {})
             llm_provider = LlmProviders(llm_config.get("Provider", "").lower())
@@ -38,6 +47,11 @@ class Configuration:
             return Result.err(f"Invalid configuration: {e}")
         
     def get_llm_openai_config(self) -> Result[OpenAiConfiguration]:
+        '''
+        Retrieves the OpenAI LLM configuration if the provider is set to OpenAI.
+        Returns:
+            Result[OpenAiConfiguration]: Result containing the OpenAiConfiguration object or an error message.
+        '''
         if self.llm_provider != LlmProviders.OPENAI:
             return Result.err(f"LLM provider {self.llm_provider} is not supported for OpenAI configuration.")
         try:

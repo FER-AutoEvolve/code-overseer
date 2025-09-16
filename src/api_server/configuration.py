@@ -7,6 +7,9 @@ __DEFAULT_FASTAPI_HOST__ = "0.0.0.0"
 
 @dataclasses.dataclass(frozen=True)
 class FastApiConfiguration:
+    '''
+    FastAPI server configuration.
+    '''
     port: int
     host: str
 

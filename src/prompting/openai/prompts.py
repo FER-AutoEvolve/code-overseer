@@ -9,6 +9,7 @@ from configuration import OpenAiConfiguration
 
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
+    '''Implementation of IGetCodeChangeCommandsPrompt using OpenAI API.'''
     _openai_settings: OpenAiConfiguration
     _openai_client: openai.OpenAI = dataclasses.field(init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))

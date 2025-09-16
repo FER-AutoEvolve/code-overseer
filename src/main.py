@@ -11,6 +11,15 @@ from configuration import Configuration
 from prompting.openai import PromptManager
 
 def main(configuration_file_path: str) -> Result[Unit]:
+    '''
+    Main entry point of the program.
+    Loads the configuration file, sets up the prompt manager and code overseer, and starts the FastAPI server.
+
+    Args:
+        configuration_file_path (str): Path to the configuration file.
+    Returns:
+        Result[Unit]: Result indicating success or failure.
+    '''
     logging.info(f"Program starting with configuration file path: {configuration_file_path}")
 
     # Load the configuration file
