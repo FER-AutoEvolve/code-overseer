@@ -68,6 +68,6 @@ class ApiServer:
             res_code_change = self._code_overseer.apply_code_change(request.change_strategic_description)
 
             if res_code_change.is_err():
-                self._logger.error(f"Failed to apply code change: {res_code_change.unwrap_err()}")
-                return {"status": "error", "message": res_code_change.unwrap_err()}
+                self._logger.error(f"Failed to apply code change: {res_code_change.message}")
+                return {"status": "error", "message": res_code_change.message}
             return {"status": "Applied code change successfully"}

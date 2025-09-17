@@ -7,9 +7,8 @@ from code_overseeing.configuration import CodeOverseerConfiguration
 from core import Result, Unit
 import os
 import gitmatch
-
-from prompting import GetCodeChangeCommandsPromptContext
 from prompting.openai import IPromptManager
+from prompting.prompts import GetCodeChangeCommandsPromptContext
 
 @dataclasses.dataclass(frozen=True)
 class CodeOverseer:
@@ -80,7 +79,7 @@ class CodeOverseer:
 
         res_codebase_file_paths = self.list_code_file_paths()
         if res_codebase_file_paths.is_err():
-            return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.unwrap_err()}")
+            return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
         codebase_file_paths = res_codebase_file_paths.unwrap()
         
         
@@ -92,14 +91,14 @@ class CodeOverseer:
         )
 
         if res_code_change_commands.is_err():
-            return Result.err(f"Failed to get code change commands: {res_code_change_commands.unwrap_err()}")
+            return Result.err(f"Failed to get code change commands: {res_code_change_commands.message}")
         code_change_commands = res_code_change_commands.unwrap()
 
         for command in code_change_commands:
             self._logger.info(f"Executing command: {command}")
             res_execution = command.execute(self._code_overseer_configuration.code_directory_path)
             if res_execution.is_err():
-                self._logger.error(f"Failed to execute command {command}: {res_execution.unwrap_err()}")
-                return Result.err(f"Failed to execute command {command}: {res_execution.unwrap_err()}")
+                self._logger.error(f"Failed to execute command {command}: {res_execution.message}")
+                return Result.err(f"Failed to execute command {command}: {res_execution.message}")
             self._logger.info(f"Successfully executed command: {command}")
         return Result.ok(Unit())
