@@ -64,7 +64,9 @@ class ApiServer:
                  dict: A dictionary indicating success or failure.
             '''
             self._logger.info(f"Received code change request: {request.change_strategic_description}")
+            
             res_code_change = self._code_overseer.apply_code_change(request.change_strategic_description)
+
             if res_code_change.is_err():
                 self._logger.error(f"Failed to apply code change: {res_code_change.unwrap_err()}")
                 return {"status": "error", "message": res_code_change.unwrap_err()}

@@ -23,7 +23,7 @@ class OpenAiConfiguration:
         try:
             return Result.ok(OpenAiConfiguration(
                 api_key=settings.get("ApiKey", ""),
-                model=settings.get("Model", "gpt-4")
+                model=settings.get("Model", "gpt-4o")
             ))
         except ValueError as e:
             return Result.err(f"Invalid OpenAI settings: {e}")

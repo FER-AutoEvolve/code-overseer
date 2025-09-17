@@ -56,18 +56,17 @@ class DeleteCodeCommand(CodeCommand):
     @staticmethod
     def parse(command_str: str) -> 'DeleteCodeCommand':
         '''
-        Parses a delete command string into a DeleteCodeCommand object.
-        Args:
-            command_str (str): Command string in the format "delete <file_path> <from_line> <to_line>"
-        Returns:
-            DeleteCodeCommand: Parsed command object
+        Parses a delete command string in the format:
+        DELETE [file] [from-to]
         '''
-        parts = command_str.strip().split(' ')
-        if len(parts) != 4 or parts[0].lower() != CommandTypes.DELETE.value:
+        import re
+        pattern = re.compile(r"DELETE\s*\[(.*?)\]\s*\[(\d+)-(\d+)\]")
+        match = pattern.match(command_str.strip())
+        if not match:
             raise ValueError("Invalid delete command format")
-        file_path = parts[1]
-        from_line = int(parts[2])
-        to_line = int(parts[3])
+        file_path = match.group(1).strip()
+        from_line = int(match.group(2).strip())
+        to_line = int(match.group(3).strip())
         return DeleteCodeCommand(file_path, from_line, to_line, CommandTypes.DELETE)
 
 
@@ -110,20 +109,17 @@ class AddCodeCommand(CodeCommand):
     @staticmethod
     def parse(command_str: str) -> Result['AddCodeCommand']:
         '''
-        Parses an add command string into an AddCodeCommand object.
-        Args:
-            command_str (str): Command string in the format "add <file_path> <code_snippet> [<line_number>]"
-        Returns:
-            Result[AddCodeCommand]: Parsed command object or error message
+        Parses an add command string in the format:
+        ADD [file] [line_number] [[code]]
         '''
-        parts = command_str.strip().split(' ', 2)
-        if len(parts) < 3 or parts[0].lower() != CommandTypes.ADD.value:
+        import re
+        pattern = re.compile(r"ADD\s*\[(.*?)\]\s*\[(\d+)\]\s*\[\[(.*?)\]\]", re.DOTALL)
+        match = pattern.match(command_str.strip())
+        if not match:
             return Result.failure("Invalid add command format")
-        file_path = parts[1]
-        code_snippet = parts[2]
-        line_number = None
-        if len(parts) == 4:
-            line_number = int(parts[3])
+        file_path = match.group(1).strip()
+        line_number = int(match.group(2).strip())
+        code_snippet = match.group(3)
         return AddCodeCommand(file_path, code_snippet, line_number, CommandTypes.ADD)
 
 
