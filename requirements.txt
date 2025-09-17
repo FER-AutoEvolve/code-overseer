@@ -5,6 +5,7 @@ click==8.2.1
 colorama==0.4.6
 distro==1.9.0
 fastapi==0.116.1
+gitmatch==0.2.1
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1

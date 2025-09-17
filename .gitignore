@@ -210,4 +210,4 @@ __marimo__/
 configuration.*.json
 
 **/logs/
-./codebase
+**/codebase
