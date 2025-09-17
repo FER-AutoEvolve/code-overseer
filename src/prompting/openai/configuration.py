@@ -10,6 +10,8 @@ class OpenAiConfiguration:
     '''
     api_key: str
     model: str
+    max_tokens: int = 200
+    temperature: float = 0.2
 
     @staticmethod
     def from_dict(settings: dict) -> Result['OpenAiConfiguration']:
@@ -23,7 +25,9 @@ class OpenAiConfiguration:
         try:
             return Result.ok(OpenAiConfiguration(
                 api_key=settings.get("ApiKey", ""),
-                model=settings.get("Model", "gpt-4o")
+                model=settings.get("Model", "gpt-4o"),
+                max_tokens=settings.get("MaxTokens", 200),
+                temperature=settings.get("Temperature", 0.2)
             ))
         except ValueError as e:
             return Result.err(f"Invalid OpenAI settings: {e}")

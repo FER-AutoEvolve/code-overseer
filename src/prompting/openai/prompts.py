@@ -23,33 +23,36 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
         try:
             self._logger.debug(f"Calling OpenAI API for code change commands with {len(context.code_file_paths)} code files")
 
-            fileObjects = [self._openai_client.files.create(
+            # Upload files to OpenAI
+            file_objects = [self._openai_client.files.create(
                 file=open(file_path, "rb"),
-                purpose="fine-tune"
-            ) for file_path in context.code_file_paths]
+                purpose="assistants"
+            ) for file_path in context.code_file_paths[0:2]]
 
-
-            completion = self._openai_client.chat.completions.create(
+            # Prepare the input files content for the prompt
+            input_files_content = [
+                {"type": "input_file", "file_id": file_obj.id} for file_obj in file_objects
+            ]
+            # THIS DOESNT WORK MAYBE USE ASSISTANTS INSTEAD??
+            # Create prompt
+            response = self._openai_client.responses.create(
                 model=self._openai_settings.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": f"{context.operational_instructions}"
-                    },
+                max_output_tokens=self._openai_settings.max_tokens,
+                temperature=self._openai_settings.temperature,
+                instructions=context.operational_instructions,
+                input=[
                     {
                         "role": "user",
-                        "content": f"{context.strategic_description}"
+                        "content": context.strategic_description
                     },
                     { # Attach the files to the chat completion request to use files in the prompt
                         "role": "user",
-                        "content": [
-                            {"type": "file", "file": {"file_id": file_obj.id}} for file_obj in fileObjects
-                        ]
+                        "content": input_files_content
                     }
                 ]
             )
 
-            response_text = completion.choices[0].message.content
+            response_text = response.output_text
 
             self._logger.debug("OpenAI API call successful, parsing response")
             code_commands: List[CodeCommand] = self._parse_response(response_text)
