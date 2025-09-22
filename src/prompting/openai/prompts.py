@@ -24,32 +24,32 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             self._logger.debug(f"Calling OpenAI API for code change commands with {len(context.code_file_paths)} code files")
 
             # Upload files to OpenAI
-            file_objects = [self._openai_client.files.create(
-                file=open(file_path, "rb"),
-                purpose="assistants"
-            ) for file_path in context.code_file_paths[0:2]]
+            file_data: List[dict] = []
+            for file_path in context.code_file_paths:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    code_txt = f.read()
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            prompt_strategic_description = {
+                        "role": "user",
+                        "content": context.strategic_description
+                    }
 
-            # Prepare the input files content for the prompt
-            input_files_content = [
-                {"type": "input_file", "file_id": file_obj.id} for file_obj in file_objects
-            ]
-            # THIS DOESNT WORK MAYBE USE ASSISTANTS INSTEAD??
+            prompt_input = [prompt_strategic_description] + file_data
+
             # Create prompt
             response = self._openai_client.responses.create(
                 model=self._openai_settings.model,
                 max_output_tokens=self._openai_settings.max_tokens,
                 temperature=self._openai_settings.temperature,
                 instructions=context.operational_instructions,
-                input=[
-                    {
-                        "role": "user",
-                        "content": context.strategic_description
-                    },
-                    { # Attach the files to the chat completion request to use files in the prompt
-                        "role": "user",
-                        "content": input_files_content
-                    }
-                ]
+                input=prompt_input
             )
 
             response_text = response.output_text
@@ -67,6 +67,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
     def _parse_response(self, response_text: str) -> List[CodeCommand]:
         '''
         Parses the response text from OpenAI into a list of CodeCommand objects using the individual command parse methods.
+        Args:
+            response_text (str): The raw response text from OpenAI.
         '''
         from code_overseeing.code_commands import AddCodeCommand, DeleteCodeCommand, CommandTypes, CodeCommand
         import re

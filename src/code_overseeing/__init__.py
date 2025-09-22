@@ -96,7 +96,7 @@ class CodeOverseer:
 
         for command in code_change_commands:
             self._logger.info(f"Executing command: {command}")
-            res_execution = command.execute(self._code_overseer_configuration.code_directory_path)
+            res_execution = command.execute()
             if res_execution.is_err():
                 self._logger.error(f"Failed to execute command {command}: {res_execution.message}")
                 return Result.err(f"Failed to execute command {command}: {res_execution.message}")

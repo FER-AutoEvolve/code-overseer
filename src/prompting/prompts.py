@@ -5,9 +5,9 @@ ADD [file] [at line number] [[code]]
 DELETE [file] [from number-to number]  
 Provide just those commands and nothing else. 
 The commands must have the [ ] chars encapsulating the parameters, including the [[ and ]] encapsulating the code through multiple lines.
-The file parameter is the path to the file relative to the root of the codebase given in the context file attachment. 
+The file parameter is the path to the codebase file given in the context file attachment. 
 When adding a new file, use line number 0 in the ADD commands. To modify a file, use the ADD and DELETE commands. 
-When modifying a file, take into account that the line numbers change as you add or delete lines.
+Take into account that the line numbers change as you add or delete lines. Always use the line numbers of the original file as given in the context file attachments.
 """
 
 from abc import abstractmethod
