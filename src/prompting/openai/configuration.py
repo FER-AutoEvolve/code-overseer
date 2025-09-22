@@ -12,6 +12,8 @@ class OpenAiConfiguration:
     model: str
     max_tokens: int = 200
     temperature: float = 0.2
+    top_p: float = 1.0
+    timeout: int = 60  # Timeout in seconds for API requests
 
     @staticmethod
     def from_dict(settings: dict) -> Result['OpenAiConfiguration']:
@@ -27,7 +29,9 @@ class OpenAiConfiguration:
                 api_key=settings.get("ApiKey", ""),
                 model=settings.get("Model", "gpt-4o"),
                 max_tokens=settings.get("MaxTokens", 200),
-                temperature=settings.get("Temperature", 0.2)
+                temperature=settings.get("Temperature", 0.2),
+                top_p=settings.get("TopP", 1.0),
+                timeout=settings.get("Timeout", 60)
             ))
         except ValueError as e:
             return Result.err(f"Invalid OpenAI settings: {e}")

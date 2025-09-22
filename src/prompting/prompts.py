@@ -8,6 +8,7 @@ The commands must have the [ ] chars encapsulating the parameters, including the
 The file parameter is the path to the codebase file given in the context file attachment. 
 When adding a new file, use line number 0 in the ADD commands. To modify a file, use the ADD and DELETE commands. 
 Take into account that the line numbers change as you add or delete lines. Always use the line numbers of the original file as given in the context file attachments.
+You can determine which line of code is on which line according to the line number markers in the code files placed as comments that look like //LN:<digits> before each line. Don't generate the line markers in the code changes.
 """
 
 from abc import abstractmethod

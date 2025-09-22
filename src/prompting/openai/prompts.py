@@ -16,7 +16,10 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, '_openai_client', openai.OpenAI(api_key=self._openai_settings.api_key))
+        object.__setattr__(self, '_openai_client', openai.OpenAI(
+            api_key=self._openai_settings.api_key, 
+            timeout=self._openai_settings.timeout
+        ))
 
     def execute(self, context: GetCodeChangeCommandsPromptContext) -> Result[List[CodeCommand]]:
         
@@ -27,7 +30,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             file_data: List[dict] = []
             for file_path in context.code_file_paths:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                    code_txt = f.read()
+                    code_txt =  f.read()
+                    code_txt = self._set_line_markers(code_txt)
                     file_data.append(
                         {
                             "role": "user",
@@ -48,6 +52,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 model=self._openai_settings.model,
                 max_output_tokens=self._openai_settings.max_tokens,
                 temperature=self._openai_settings.temperature,
+                top_p=self._openai_settings.top_p,
                 instructions=context.operational_instructions,
                 input=prompt_input
             )
@@ -70,6 +75,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
         Args:
             response_text (str): The raw response text from OpenAI.
         '''
+        response_text = self._remove_line_markers(response_text)
         from code_overseeing.code_commands import AddCodeCommand, DeleteCodeCommand, CommandTypes, CodeCommand
         import re
         commands: List[CodeCommand] = []
@@ -95,10 +101,32 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 pass
 
         return commands
-
-
-
-
-        
-
     
+    @staticmethod
+    def _set_line_markers(code_txt: str) -> str:
+        '''
+        Sets line markers as comments in the code text for easier reference. //LN:digits+
+        Args:
+            code_txt (str): The original code text.
+
+        Returns:
+            str: The code text with line markers added.
+        '''
+        lines = code_txt.splitlines()
+        marked_lines = [f"//LN:{i+1} {line}" for i, line in enumerate(lines)]
+        return "\n".join(marked_lines)
+    
+    @staticmethod
+    def _remove_line_markers(code_txt: str) -> str:
+        '''
+        Removes line markers from the code text.
+        Args:
+            code_txt (str): The code text with line markers.
+
+        Returns:
+            str: The code text without line markers.
+        '''
+        import re
+        lines = code_txt.splitlines()
+        cleaned_lines = [re.sub(r"//LN:\d+", "", line) if line.startswith("//LN:") else line for line in lines]
+        return "\n".join(cleaned_lines)
