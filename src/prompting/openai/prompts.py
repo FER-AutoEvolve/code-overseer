@@ -31,7 +31,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             for file_path in context.code_file_paths:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     code_txt =  f.read()
-                    code_txt = self._set_line_markers(code_txt)
+                    #code_txt = self._set_line_markers(code_txt)
                     file_data.append(
                         {
                             "role": "user",
@@ -75,7 +75,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
         Args:
             response_text (str): The raw response text from OpenAI.
         '''
-        response_text = self._remove_line_markers(response_text)
+        #response_text = self._remove_line_markers(response_text)
         from code_overseeing.code_commands import AddCodeCommand, DeleteCodeCommand, CommandTypes, CodeCommand
         import re
         commands: List[CodeCommand] = []
@@ -96,6 +96,17 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             cmd_str = del_match.group(0)
             try:
                 cmd = DeleteCodeCommand.parse(cmd_str)
+                commands.append(cmd)
+            except Exception:
+                pass
+
+        # Find all UPDATE_FILE commands
+        update_pattern = re.compile(r"UPDATE_FILE\s*\[.*?\]\s*\[\[.*?\]\]", re.DOTALL)
+        for update_match in update_pattern.finditer(response_text):
+            cmd_str = update_match.group(0)
+            try:
+                from code_overseeing.code_commands import UpdateFileCommand
+                cmd = UpdateFileCommand.parse(cmd_str)
                 commands.append(cmd)
             except Exception:
                 pass

@@ -11,6 +11,7 @@ class CommandTypes(Enum):
     '''
     ADD = "add"
     DELETE = "delete"
+    UPDATE_FILE = "update_file"
 
 @dataclasses.dataclass
 class CodeCommand:
@@ -142,6 +143,48 @@ class AddCodeCommand(CodeCommand):
         code_snippet = match.group(3)
         return AddCodeCommand(file_path, code_snippet, line_number)
 
+@dataclasses.dataclass
+class UpdateFileCommand(CodeCommand):
+    '''
+    Command to update an entire code file with new content.
+    '''
+    new_content: str
+    command_type: CommandTypes = dataclasses.field(init=False, default=CommandTypes.UPDATE_FILE)
+
+    def execute(self) -> Result[Unit]:
+        '''
+        Executes the update file command.
+        Returns:
+            Result[Unit]: Result indicating success or failure
+        '''
+        try:
+            with open(self.file_path, 'w') as file:
+                file.write(self.new_content)
+            return Result.ok(Unit())
+        except Exception as e:
+            return Result.err(str(e))
+        
+    def __str__(self):
+        return super().__str__() + " WITH NEW CONTENT"
+        
+    @staticmethod
+    def parse(command_str: str) -> Result['UpdateFileCommand']:
+        '''
+        Parses an update file command string in the format:
+        UPDATE_FILE [file] [[new_content]]
+        Args:
+            command_str (str): Command string
+        Returns:
+            Result[UpdateFileCommand]: Parsed command object or error message
+        '''
+        import re
+        pattern = re.compile(r"UPDATE_FILE\s*\[(.*?)\]\s*\[\[(.*?)\]\]", re.DOTALL)
+        match = pattern.match(command_str.strip())
+        if not match:
+            return Result.err("Invalid update file command format")
+        file_path = match.group(1).strip()
+        new_content = match.group(2)
+        return UpdateFileCommand(file_path, new_content)
 
 @dataclasses.dataclass(init=False)
 class CommandParser:
@@ -168,6 +211,9 @@ class CommandParser:
                 return res_command
             elif command_type == CommandTypes.ADD.value:
                 res_command = AddCodeCommand.parse(command_str)
+                return res_command
+            elif command_type == CommandTypes.UPDATE_FILE.value:
+                res_command = UpdateFileCommand.parse(command_str)
                 return res_command
             else:
                 return Result.err(f"Unknown command type: {command_type}")
