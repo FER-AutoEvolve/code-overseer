@@ -1,11 +1,28 @@
 {
-    "Llm": {
+    "Prompting": {
+        "CodebaseDescription": "",
+        "CodeCommandStrategy": "update_file",
         "Provider": "OpenAI",
-        "ApiKey": "your-api-key-here",
-        "Model": "gpt-4"
+        "ProviderConfig": {
+            "ApiKey": "",
+            "Model": "gpt-4.1",
+            "Temperature": 0.4,
+            "MaxTokens": 3000,
+            "TopP": 1.0,
+            "Timeout": 60
+        }
     },
     "CodeOverseer": {
-        "CodeDirectory": "./codebase"
+        "CodeDirectory": "./codebase",
+        "IgnorePatterns": [
+            "**/node_modules/",
+            "**/dist/",
+            ".vscode/",
+            ".git/"
+        ],
+        "IncludeOnlyPatterns": [
+            "*.ts"
+        ]
     },
     "FastApi": {
         "Host": "0.0.0.0",

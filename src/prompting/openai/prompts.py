@@ -37,15 +37,15 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                     
                     file_data.append(
                         {
-                            "role": "system",
+                            "role": "user",
                             "content": [
                                 {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
                             ]
                         }
                     )
-            # The prompt system preamble for the prompt instruction
+            # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_system_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
 
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
@@ -59,7 +59,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 max_output_tokens=self._openai_settings.max_tokens,
                 temperature=self._openai_settings.temperature,
                 top_p=self._openai_settings.top_p,
-                instructions=prompt_system_preamble,
+                instructions=prompt_preamble,
                 input=prompt_input
             )
 

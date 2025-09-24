@@ -12,7 +12,7 @@ Don't generate the line markers in the code changes.
 """
 
 __CODE_CHANGE_OPERATIONAL_INSTRUCTION_UPDATE_FILE_STRATEGY_TEXT__ = """
-Give me instructions how to implement the mentioned functionalities in the form of the following command: 
+Give me instructions how to implement the mentioned functionalities in the form of the following UPDATE_FILE command: 
 UPDATE_FILE [file] [[code]] 
 The UPDATE_FILE command's parameters are the full file path and the updated code of the entire file. Provide just those commands and nothing else. 
 The commands must have the [ ] chars encapsulating the parameters, including the [[ and ]] encapsulating the code through multiple lines.
@@ -22,7 +22,7 @@ When adding a new file, just reference the file path and the file will be create
 
 from abc import abstractmethod
 import dataclasses
-from typing import List, Optional
+from typing import List
 
 from code_overseeing.code_commands import CodeCommand
 from configuration import CodeCommandStrategies
