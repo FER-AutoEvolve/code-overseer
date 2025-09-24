@@ -7,7 +7,7 @@ from code_overseeing.configuration import CodeOverseerConfiguration
 from core import Result, Unit
 import os
 import gitmatch
-from prompting.openai import IPromptManager
+from prompting.openai import BasePromptManager
 from prompting.prompts import GetCodeChangeCommandsPromptContext
 
 @dataclasses.dataclass(frozen=True)
@@ -16,7 +16,7 @@ class CodeOverseer:
     Manages and oversees code changes in a codebase.
     '''
     _code_overseer_configuration: CodeOverseerConfiguration
-    _prompt_manager: IPromptManager
+    _prompt_manager: BasePromptManager
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
 
     def list_code_file_paths(self) -> Result[List[str]]:
@@ -82,18 +82,18 @@ class CodeOverseer:
             return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
         codebase_file_paths = res_codebase_file_paths.unwrap()
         
-        
+        # Get code change commands from the prompt manager
         res_code_change_commands = self._prompt_manager.execute_code_change_commands_prompt(
-            GetCodeChangeCommandsPromptContext(
-                strategic_description=change_strategic_description,
-                code_file_paths=codebase_file_paths
-            )
+            strategic_description=change_strategic_description,
+            code_file_paths=codebase_file_paths
         )
 
         if res_code_change_commands.is_err():
-            return Result.err(f"Failed to get code change commands: {res_code_change_commands.message}")
+            return Result.err(f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}")
         code_change_commands = res_code_change_commands.unwrap()
+        self._logger.info(f"Received {len(code_change_commands)} code change commands from prompt manager")
 
+        # Execute each code change command
         for command in code_change_commands:
             self._logger.info(f"Executing command: {command}")
             res_execution = command.execute()

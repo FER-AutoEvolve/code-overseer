@@ -1,13 +1,19 @@
 from abc import abstractmethod
+import dataclasses
 from typing import List, Optional
 from code_overseeing.code_commands import CodeCommand
+from configuration import PromptingConfiguration
 from core import Result
+from prompting.prompts import GetCodeChangeCommandsPromptContext
 
-
-class IPromptManager:
+@dataclasses.dataclass(frozen=True, init=False)
+class BasePromptManager:
     '''
-    Interface for managing prompts to OpenAI.
+    Base class for managing prompts to OpenAI. Contains methods to execute raw prompts and specific code change command prompts.
+    Encapsulates the prompting configuration - command strategy, codebase description, and specific provider information.
     '''
+    _prompting_configuration: PromptingConfiguration
+    
     @abstractmethod
     def execute_raw_prompt(self, prompt_text: str) -> Result[str]:
         '''
@@ -21,11 +27,12 @@ class IPromptManager:
         pass
 
     @abstractmethod
-    def execute_code_change_commands_prompt(self, context: dict) -> Result[List[CodeCommand]]:
+    def execute_code_change_commands_prompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
         '''
-        Executes a prompt to get code change commands based on the provided context.
+        Executes a prompt to get the code change commands based on the provided context.
         Parameters:
-            context (dict): The context for generating code change commands.
+            strategic_description (str): Description of the desired changes.
+            code_file_paths (Optional[List[str]]): List of code file paths to consider.
         Returns:
             Result[List[CodeCommand]]: A list of code change commands or an error message.
         '''

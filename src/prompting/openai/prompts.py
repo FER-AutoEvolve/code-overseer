@@ -2,9 +2,10 @@ import dataclasses
 import logging
 from typing import List
 from code_overseeing.code_commands import CodeCommand
+from configuration import CodeCommandStrategies
 from core import Result
 import openai
-from configuration import OpenAiConfiguration
+from prompting.openai.configuration import OpenAiConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, IGetCodeChangeCommandsPrompt
 
 
@@ -22,30 +23,35 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
         ))
 
     def execute(self, context: GetCodeChangeCommandsPromptContext) -> Result[List[CodeCommand]]:
-        
         try:
             self._logger.debug(f"Calling OpenAI API for code change commands with {len(context.code_file_paths)} code files")
 
-            # Upload files to OpenAI
+            # Prepare codebase files as text
             file_data: List[dict] = []
             for file_path in context.code_file_paths:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     code_txt =  f.read()
-                    #code_txt = self._set_line_markers(code_txt)
+                    # Add line markers if using ADD/DELETE strategy
+                    if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
+                        code_txt = self._set_line_markers(code_txt)
+                    
                     file_data.append(
                         {
-                            "role": "user",
+                            "role": "system",
                             "content": [
                                 {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
                             ]
                         }
                     )
-            prompt_strategic_description = {
-                        "role": "user",
-                        "content": context.strategic_description
-                    }
+            # The prompt system preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
+            prompt_system_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
 
-            prompt_input = [prompt_strategic_description] + file_data
+            # The prompt input with the strategic description (user story) and the code files
+            prompt_input = [{
+                "role": "user",
+                "content": context.strategic_change_description
+            }] + file_data
 
             # Create prompt
             response = self._openai_client.responses.create(
@@ -53,14 +59,17 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 max_output_tokens=self._openai_settings.max_tokens,
                 temperature=self._openai_settings.temperature,
                 top_p=self._openai_settings.top_p,
-                instructions=context.operational_instructions,
+                instructions=prompt_system_preamble,
                 input=prompt_input
             )
 
             response_text = response.output_text
 
             self._logger.debug("OpenAI API call successful, parsing response")
-            code_commands: List[CodeCommand] = self._parse_response(response_text)
+            code_commands: List[CodeCommand] = self._parse_response(
+                response_text,
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+            )
             self._logger.debug(f"Parsed {len(code_commands)} code commands")
             
             return Result.ok(code_commands)
@@ -69,13 +78,15 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             self._logger.error(f"OpenAI API call failed: {e}")
             return Result.err(f"OpenAI API call failed: {e}")
         
-    def _parse_response(self, response_text: str) -> List[CodeCommand]:
+    def _parse_response(self, response_text: str, remove_line_markers: bool = False) -> List[CodeCommand]:
         '''
         Parses the response text from OpenAI into a list of CodeCommand objects using the individual command parse methods.
         Args:
             response_text (str): The raw response text from OpenAI.
         '''
-        #response_text = self._remove_line_markers(response_text)
+        if remove_line_markers:
+            response_text = self._remove_line_markers(response_text)
+
         from code_overseeing.code_commands import AddCodeCommand, DeleteCodeCommand, CommandTypes, CodeCommand
         import re
         commands: List[CodeCommand] = []

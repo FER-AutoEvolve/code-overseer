@@ -1,25 +1,31 @@
 from abc import abstractmethod
 import dataclasses
-from typing import List
+from typing import List, Optional
 
 from code_overseeing.code_commands import CodeCommand
+from configuration import PromptingConfiguration
 from core import Result
-from prompting import IPromptManager
+from prompting import BasePromptManager
 from prompting.openai.configuration import OpenAiConfiguration
 from prompting.openai.prompts import GetCodeChangeCommandsPrompt
 import logging
 import openai
 
+from prompting.prompts import GetCodeChangeCommandsPromptContext
+
 @dataclasses.dataclass(frozen=True)
-class PromptManager(IPromptManager):
+class PromptManager(BasePromptManager):
     '''
     Manages prompts to the OpenAI API.
     Attributes:
         _openai_configuration (OpenAiConfiguration): Configuration for OpenAI API access.
         _logger (logging.Logger): Logger for logging information and errors.
     '''
-    _openai_configuration: OpenAiConfiguration
+    _openai_configuration: OpenAiConfiguration = dataclasses.field(init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+
+    def __post_init__(self):
+        object.__setattr__(self, '_openai_configuration', OpenAiConfiguration.from_dict(self._prompting_configuration.provider_config).unwrap())
 
     def execute_raw_prompt(self, prompt_text: str) -> Result[str]:
         try:
@@ -34,6 +40,14 @@ class PromptManager(IPromptManager):
         except Exception as e:
             return Result.err(f"Error executing prompt: {e}")
 
-    def execute_code_change_commands_prompt(self, context: dict) -> Result[List[CodeCommand]]:
+    def execute_code_change_commands_prompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+        self._logger.info("Preparing code change commands prompt context")
+        
+        prompt_context = GetCodeChangeCommandsPromptContext(
+            strategic_change_description=strategic_description,
+            code_file_paths=code_file_paths,
+            codebase_description=self._prompting_configuration.codebase_description,
+            code_command_strategy=self._prompting_configuration.code_command_strategy
+        )
         prompt = GetCodeChangeCommandsPrompt(self._openai_configuration, self._logger)
-        return prompt.execute(context)
+        return prompt.execute(prompt_context)

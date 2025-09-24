@@ -9,6 +9,7 @@ from core import Result, Unit
 from code_overseeing import CodeOverseer
 from configuration import Configuration
 from prompting.openai import PromptManager
+from prompting.openai.configuration import OpenAiConfiguration
 
 def main(configuration_file_path: str) -> Result[Unit]:
     '''
@@ -35,13 +36,8 @@ def main(configuration_file_path: str) -> Result[Unit]:
     logging.info(f"Configuration file loaded successfully")
 
     # Setup prompt manager
-    res_llm_openai_config = config.get_llm_openai_config()
-    if res_llm_openai_config.is_err():
-        logging.error(f"Failed to get OpenAI LLM configuration: {res_llm_openai_config.message}")
-        return Result.err(res_llm_openai_config.message)
-    llm_openai_config = res_llm_openai_config.unwrap()
-    
-    prompt_manager = PromptManager(llm_openai_config, logging.getLogger())
+    prompting_config = config.prompting_config
+    prompt_manager = PromptManager(prompting_config, logging.getLogger())
 
     # Set up the code overseer
     code_overseer = CodeOverseer(config.code_overseer_config, prompt_manager, logging.getLogger())
