@@ -1,6 +1,6 @@
 import dataclasses
 from typing import Any
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from code_overseeing import CodeOverseer
 from configuration import FastApiConfiguration
 from core import Result, Unit
@@ -69,5 +69,5 @@ class ApiServer:
 
             if res_code_change.is_err():
                 self._logger.error(f"Failed to apply code change: {res_code_change.message}")
-                return {"status": "error", "message": res_code_change.message}
+                raise HTTPException(status_code=500, detail=res_code_change.message)
             return {"status": "Applied code change successfully"}

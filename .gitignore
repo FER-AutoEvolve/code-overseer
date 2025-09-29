@@ -208,6 +208,7 @@ __marimo__/
 
 
 configuration.*.json
+!configuration.template.json
 
 **/logs/
 **/codebase

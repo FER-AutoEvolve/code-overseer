@@ -1,0 +1,31 @@
+{
+    "Prompting": {
+        "CodebaseDescription": "${CODEBASE_DESCRIPTION}",
+        "CodeCommandStrategy": "${CODE_COMMAND_STRATEGY}",
+        "Provider": "${PROMPTING_PROVIDER}",
+        "ProviderConfig": {
+            "ApiKey": "${PROMPTING_API_KEY}",
+            "Model": "${PROMPTING_MODEL}",
+            "Temperature": ${PROMPTING_TEMPERATURE},
+            "MaxTokens": ${PROMPTING_MAX_TOKENS},
+            "TopP": ${PROMPTING_TOP_P},
+            "Timeout": ${PROMPTING_TIMEOUT}
+        }
+    },
+    "CodeOverseer": {
+        "CodeDirectory": "${CODE_DIRECTORY}",
+        "IgnorePatterns": [
+            "**/node_modules/",
+            "**/dist/",
+            ".vscode/",
+            ".git/"
+        ],
+        "IncludeOnlyPatterns": [
+            "*.ts"
+        ]
+    },
+    "FastApi": {
+        "Host": "0.0.0.0",
+        "Port": ${FASTAPI_PORT}
+    }
+}
