@@ -22,7 +22,7 @@ class CodeCommand:
     command_type: CommandTypes
 
     @abstractmethod
-    def execute(self) -> Result[Unit]:
+    def execute(self, path_prefix: str = None) -> Result[Unit]:
         pass
 
     def __str__(self):
@@ -37,13 +37,14 @@ class DeleteCodeCommand(CodeCommand):
     to_line_number: int
     command_type: CommandTypes = dataclasses.field(init=False, default=CommandTypes.DELETE)
 
-    def execute(self) -> Result[Unit]:
+    def execute(self, path_prefix: str = None) -> Result[Unit]:
         try:
+            target_file_path = os.path.join(path_prefix, self.file_path) if path_prefix else self.file_path
             lines: List[str] = []
             # check if file exists, and readlines
             # if not, leave as empty lines
-            if os.path.exists(self.file_path):
-                with open(self.file_path, 'r') as file:
+            if os.path.exists(target_file_path):
+                with open(target_file_path, 'r') as file:
                     lines = file.readlines()
 
             if self.from_line_number < 1 or self.to_line_number > len(lines) or self.from_line_number > self.to_line_number:
@@ -51,7 +52,7 @@ class DeleteCodeCommand(CodeCommand):
 
             del lines[self.from_line_number - 1:self.to_line_number]
 
-            with open(self.file_path, 'w') as file:
+            with open(target_file_path, 'w') as file:
                 file.writelines(lines)
 
             return Result.ok(Unit())
@@ -92,18 +93,19 @@ class AddCodeCommand(CodeCommand):
     line_number: int = None  # If None, append to the end of the file
     command_type: CommandTypes = dataclasses.field(init=False, default=CommandTypes.ADD)
 
-    def execute(self) -> Result[Unit]:
+    def execute(self, path_prefix: str = None) -> Result[Unit]:
         '''
         Executes the add code command.
         Returns:
             Result[Unit]: Result indicating success or failure
         '''
         try:
+            target_file_path = os.path.join(path_prefix, self.file_path) if path_prefix else self.file_path
             lines: List[str] = []
             # check if file exists, and readlines
             # if not, use as empty lines
-            if os.path.exists(self.file_path):
-                with open(self.file_path, 'r') as file:
+            if os.path.exists(target_file_path):
+                with open(target_file_path, 'r') as file:
                     lines = file.readlines()
 
             if self.line_number is None:
@@ -113,7 +115,7 @@ class AddCodeCommand(CodeCommand):
                     return Result.err("Invalid line number")
                 lines.insert(self.line_number - 1, self.code_snippet + '\n')
 
-            with open(self.file_path, 'w') as file:
+            with open(target_file_path, 'w') as file:
                 file.writelines(lines)
 
             return Result.ok(Unit())
@@ -151,14 +153,15 @@ class UpdateFileCommand(CodeCommand):
     new_content: str
     command_type: CommandTypes = dataclasses.field(init=False, default=CommandTypes.UPDATE_FILE)
 
-    def execute(self) -> Result[Unit]:
+    def execute(self, path_prefix: str = None) -> Result[Unit]:
         '''
         Executes the update file command.
         Returns:
             Result[Unit]: Result indicating success or failure
         '''
         try:
-            with open(self.file_path, 'w') as file:
+            target_file_path = os.path.join(path_prefix, self.file_path) if path_prefix else self.file_path
+            with open(target_file_path, 'w') as file:
                 file.write(self.new_content)
             return Result.ok(Unit())
         except Exception as e:
