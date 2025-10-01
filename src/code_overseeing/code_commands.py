@@ -12,6 +12,7 @@ class CommandTypes(Enum):
     ADD = "add"
     DELETE = "delete"
     UPDATE_FILE = "update_file"
+    DONE = "done"
 
 @dataclasses.dataclass
 class CodeCommand:
@@ -188,6 +189,39 @@ class UpdateFileCommand(CodeCommand):
         file_path = match.group(1).strip()
         new_content = match.group(2)
         return UpdateFileCommand(file_path, new_content)
+    
+@dataclasses.dataclass
+class DoneCommand(CodeCommand):
+    '''
+    Command indicating that no further code changes are needed.
+    '''
+    command_type: CommandTypes = dataclasses.field(init=False, default=CommandTypes.DONE)
+
+    def execute(self, path_prefix: str = None) -> Result[Unit]:
+        '''
+        Executes the done command (no-op).
+        Returns:
+            Result[Unit]: Result indicating success
+        '''
+        return Result.ok(Unit())
+        
+    def __str__(self):
+        return "DONE COMMAND - No further changes needed"
+        
+    @staticmethod
+    def parse(command_str: str) -> Result['DoneCommand']:
+        '''
+        Parses a done command string in the format:
+        DONE
+        Args:
+            command_str (str): Command string
+        Returns:
+            Result[DoneCommand]: Parsed command object or error message
+        '''
+        if command_str.strip().upper() == "DONE":
+            return Result.ok(DoneCommand(file_path=""))
+        else:
+            return Result.err("Invalid done command format")
 
 @dataclasses.dataclass(init=False)
 class CommandParser:
@@ -217,6 +251,9 @@ class CommandParser:
                 return res_command
             elif command_type == CommandTypes.UPDATE_FILE.value:
                 res_command = UpdateFileCommand.parse(command_str)
+                return res_command
+            elif command_type == CommandTypes.DONE.value:
+                res_command = DoneCommand.parse(command_str)
                 return res_command
             else:
                 return Result.err(f"Unknown command type: {command_type}")
