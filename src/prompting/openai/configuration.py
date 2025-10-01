@@ -12,8 +12,8 @@ class OpenAiConfiguration:
     api_key: str
     model: str
     max_tokens: int = 200
-    temperature: float = 0.2
-    top_p: float = 1.0
+    temperature: float|None = 0.2
+    top_p: float|None = 1.0
     timeout: int = 60  # Timeout in seconds for API requests
 
     @staticmethod
@@ -30,8 +30,8 @@ class OpenAiConfiguration:
                 api_key=config.get("ApiKey", ""),
                 model=config.get("Model", "gpt-4o"),
                 max_tokens=config.get("MaxTokens", 200),
-                temperature=config.get("Temperature", 0.2),
-                top_p=config.get("TopP", 1.0),
+                temperature=config.get("Temperature", None),
+                top_p=config.get("TopP", None),
                 timeout=config.get("Timeout", 60)
             ))
         except ValueError as e:
