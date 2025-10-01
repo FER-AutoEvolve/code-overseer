@@ -37,3 +37,15 @@ class BasePromptManager:
             Result[List[CodeCommand]]: A list of code change commands or an error message.
         '''
         pass
+
+    @abstractmethod
+    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+        '''
+        Executes a reprompt after code changes have been made, to determine if further changes are needed.
+        Parameters:
+            strategic_description (str): Description of the desired changes.
+            code_file_paths (Optional[List[str]]): List of code file paths to consider. 
+        Returns:
+            Result[None]: Success or an error message.
+        '''
+        pass

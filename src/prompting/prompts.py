@@ -14,10 +14,15 @@ Don't generate the line markers in the code changes.
 __CODE_CHANGE_OPERATIONAL_INSTRUCTION_UPDATE_FILE_STRATEGY_TEXT__ = """
 Give me instructions how to implement the mentioned functionalities in the form of the following `UPDATE_FILE` command: 
 UPDATE_FILE [file] [[code]] 
-The UPDATE_FILE command consists of the `UPDATE_FILE` keyword, the parameter containing the full file path, and the parameter containing the updated code of the entire file. Provide just those commands and nothing else. 
+The UPDATE_FILE command consists of the `UPDATE_FILE` keyword, the parameter containing the file path, and the parameter containing the updated code of the entire file. Provide just those commands and nothing else. 
 The commands must have the [ ] chars encapsulating the parameters, including the [[ and ]] encapsulating the code through multiple lines.
 The file parameter is the path to the codebase file given in the context file attachment. 
 When adding a new file, just reference the file path and the file will be created.
+"""
+
+__CODE_CHANGE_OPERATIONAL_REPROMPT_INSTRUCTION_TEXT__ = """
+If you think there are no more changes needed, respond with the `DONE` command in the following format:
+DONE
 """
 
 from abc import abstractmethod
@@ -50,6 +55,30 @@ class GetCodeChangeCommandsPromptContext:
            'code_change_command_operational_instruction',
             chosen_code_change_instruction
            )
+        
+@dataclasses.dataclass(frozen=True)
+class GetCodeChangeCommandsRepromptContext:
+    '''
+    Context for generating additional code change commands or concluding with DONE.
+    Attributes:
+        strategic_description (str): Description of the desired changes.
+        code_file_paths (List[str]): List of code file paths to consider.
+    '''
+    strategic_change_description: str
+    codebase_description: str
+    code_command_strategy: CodeCommandStrategies
+    code_file_paths: List[str] = dataclasses.field(default_factory=list)
+    code_change_command_operational_instruction: str = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        chosen_code_change_instruction = \
+            (__CODE_CHANGE_OPERATIONAL_INSTRUCTION_ADD_DELETE_STRATEGY_TEXT__ if self.code_command_strategy == CodeCommandStrategies.ADD_DELETE else __CODE_CHANGE_OPERATIONAL_INSTRUCTION_UPDATE_FILE_STRATEGY_TEXT__) \
+            + "\n" + __CODE_CHANGE_OPERATIONAL_REPROMPT_INSTRUCTION_TEXT__
+        object.__setattr__(
+            self, 
+           'code_change_command_operational_instruction',
+            chosen_code_change_instruction
+           )
 
 class IGetCodeChangeCommandsPrompt:
     '''
@@ -63,5 +92,20 @@ class IGetCodeChangeCommandsPrompt:
             context (GetCodeChangeCommandsPromptContext): The context for the prompt.
         Returns:
             Result[List[CodeCommand]]: The result of the prompt execution.
+        '''
+        pass
+
+class IGetCodeChangeCommandsReprompt:
+    '''
+    Interface for generating additional code change commands or concluding with DONE based on a given context.
+    '''
+    @abstractmethod
+    def execute(self, context: GetCodeChangeCommandsRepromptContext) -> Result[List[CodeCommand]]:
+        '''
+        Executes the reprompt with the given context.
+        Args:
+            context (GetCodeRepromptContext): The context for the reprompt.
+        Returns:
+            Result[List[CodeCommand]]: The result of the reprompt execution.
         '''
         pass

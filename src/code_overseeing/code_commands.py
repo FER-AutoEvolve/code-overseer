@@ -144,7 +144,7 @@ class AddCodeCommand(CodeCommand):
         file_path = match.group(1).strip()
         line_number = int(match.group(2).strip())
         code_snippet = match.group(3)
-        return AddCodeCommand(file_path, code_snippet, line_number)
+        return Result.ok(AddCodeCommand(file_path, code_snippet, line_number))
 
 @dataclasses.dataclass
 class UpdateFileCommand(CodeCommand):
@@ -188,7 +188,7 @@ class UpdateFileCommand(CodeCommand):
             return Result.err("Invalid update file command format")
         file_path = match.group(1).strip()
         new_content = match.group(2)
-        return UpdateFileCommand(file_path, new_content)
+        return Result.ok(UpdateFileCommand(file_path, new_content))
     
 @dataclasses.dataclass
 class DoneCommand(CodeCommand):

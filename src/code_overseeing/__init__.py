@@ -9,6 +9,7 @@ import os
 import gitmatch
 from prompting.openai import BasePromptManager
 from prompting.prompts import GetCodeChangeCommandsPromptContext
+from code_overseeing.code_commands import CodeCommand, CommandTypes
 
 @dataclasses.dataclass(frozen=True)
 class CodeOverseer:
@@ -101,4 +102,41 @@ class CodeOverseer:
                 self._logger.error(f"Failed to execute command {command}: {res_execution.message}")
                 return Result.err(f"Failed to execute command {command}: {res_execution.message}")
             self._logger.info(f"Successfully executed command: {command}")
+        
+        # Execute reprompt if configured until DONE is received
+        if self._code_overseer_configuration.reprompt_on_change:
+            done_received: bool = False
+            reprompt_attempts: int = 0
+            while not done_received:
+                res_codebase_file_paths = self.list_code_file_paths()
+                if res_codebase_file_paths.is_err():
+                    return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
+                codebase_file_paths = res_codebase_file_paths.unwrap()
+
+                self._logger.info(f"Executing code change reprompt {reprompt_attempts + 1}")
+                res_reprompt = self._prompt_manager.execute_code_change_reprompt(
+                    strategic_description=change_strategic_description,
+                    code_file_paths=codebase_file_paths
+                )
+
+                if res_reprompt.is_err():
+                    return Result.err(f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}")
+                reprompt_commands = res_reprompt.unwrap()
+                self._logger.info(f"Received {len(reprompt_commands)} reprompt commands from prompt manager")
+
+                for command in reprompt_commands:
+                    self._logger.info(f"Executing reprompt command: {command}")
+                    if command.command_type == CommandTypes.DONE:
+                        self._logger.info("Received DONE command, finishing reprompting")
+                        done_received = True
+                        break
+                    
+                    res_execution = command.execute(self._code_overseer_configuration.code_directory_path)
+                    if res_execution.is_err():
+                        self._logger.error(f"Failed to execute reprompt command {command}: {res_execution.message}")
+                        return Result.err(f"Failed to execute reprompt command {command}: {res_execution.message}")
+                    self._logger.info(f"Successfully executed reprompt command: {command}")
+                
+                reprompt_attempts += 1
+
         return Result.ok(Unit())

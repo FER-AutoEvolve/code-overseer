@@ -7,11 +7,11 @@ from configuration import PromptingConfiguration
 from core import Result
 from prompting import BasePromptManager
 from prompting.openai.configuration import OpenAiConfiguration
-from prompting.openai.prompts import GetCodeChangeCommandsPrompt
+from prompting.openai.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeCommandsReprompt
 import logging
 import openai
 
-from prompting.prompts import GetCodeChangeCommandsPromptContext
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext
 
 @dataclasses.dataclass(frozen=True)
 class PromptManager(BasePromptManager):
@@ -50,4 +50,16 @@ class PromptManager(BasePromptManager):
             code_command_strategy=self._prompting_configuration.code_command_strategy
         )
         prompt = GetCodeChangeCommandsPrompt(self._openai_configuration, self._logger)
+        return prompt.execute(prompt_context)
+    
+    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+        self._logger.info("Preparing code change reprompt context")
+        
+        prompt_context = GetCodeChangeCommandsRepromptContext(
+            strategic_change_description=strategic_description,
+            code_file_paths=code_file_paths,
+            codebase_description=self._prompting_configuration.codebase_description,
+            code_command_strategy=self._prompting_configuration.code_command_strategy
+        )
+        prompt = GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger)
         return prompt.execute(prompt_context)

@@ -22,7 +22,8 @@ ENV CODEBASE_DESCRIPTION="Default description" \
     PROMPTING_TOP_P="1.0" \
     PROMPTING_TIMEOUT="60" \
     CODE_DIRECTORY="./codebase" \
-    FASTAPI_PORT="3000"
+    FASTAPI_PORT="3000" \
+    REPROMPT_ON_CHANGE="false"
 
 RUN envsubst < /app/configuration.template.json > /app/configuration.json
 RUN rm /app/configuration.template.json
