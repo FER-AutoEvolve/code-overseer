@@ -22,6 +22,7 @@ The code overseer component repository with dockerization. Accepts a strategic c
     ]
 }
 ```
+3. Reset the codebase directory by running `python ./reset_codebase.py`.
 
 ## Run in docker
 > This container is intended to be run as part of a docker compose and not specifically as a standalone container
