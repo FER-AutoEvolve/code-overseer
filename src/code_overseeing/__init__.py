@@ -145,7 +145,7 @@ class CodeOverseer:
         code_change_commands = res_code_change_commands.unwrap()
         self._logger.info(f"Received {len(code_change_commands)} code change commands from prompt manager")
 
-        # Execute each code change command
+        # Execute each code change command from the primary prompt in the staging directory
         for command in code_change_commands:
             self._logger.info(f"Executing command: {command}")
             res_execution = command.execute(self._code_overseer_configuration.code_staging_directory_path)
@@ -154,7 +154,7 @@ class CodeOverseer:
                 return Result.err(f"Failed to execute command {command}: {res_execution.message}")
             self._logger.info(f"Successfully executed command: {command}")
         
-        # Execute reprompt if configured until DONE is received
+        # Execute reprompt if configured until DONE is received and execute in staging directory
         if self._code_overseer_configuration.reprompt_on_change:
             done_received: bool = False
             reprompt_attempts: int = 0
@@ -190,11 +190,13 @@ class CodeOverseer:
                 
                 reprompt_attempts += 1
             self._logger.info(f"Finished reprompting after {reprompt_attempts} attempts")
+        
         # Copy staging back to codebase
         res_copy_back = self._copy_staging_to_codebase()
         if res_copy_back.is_err():
             return Result.err(f"Failed to copy staging back to codebase: {res_copy_back.message}")
         self._logger.info("Successfully copied staging back to codebase")
+        
         # Remove staging directory
         res_remove_staging = self._remove_staging_directory()
         if res_remove_staging.is_err():
