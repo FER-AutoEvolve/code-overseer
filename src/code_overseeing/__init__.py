@@ -1,6 +1,6 @@
 import dataclasses
 from enum import Enum
-from fnmatch import fnmatch
+import shutil
 import logging
 from typing import List
 from code_overseeing.configuration import CodeOverseerConfiguration
@@ -20,7 +20,7 @@ class CodeOverseer:
     _prompt_manager: BasePromptManager
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
 
-    def list_code_file_paths(self) -> Result[List[str]]:
+    def list_codebase_file_paths(self) -> Result[List[str]]:
         '''
         Lists all code file paths that are not ignored and are exclusively included in the configuration.
         Returns:
@@ -67,6 +67,50 @@ class CodeOverseer:
             return Result.ok(code_file_paths)
         except Exception as e:
             return Result.err(str(e))
+        
+    def list_staging_file_paths(self) -> Result[List[str]]:
+        '''
+        Lists all code file paths in the staging directory that are not ignored and are exclusively included in the configuration.
+        Returns:
+            Result[List[str]]: List of code file paths or error message
+        '''
+        def normalize_path(path):
+            return path.replace("\\", "/")
+
+        try:
+            if not os.path.exists(self._code_overseer_configuration.code_staging_directory_path):
+                return Result.err(f"Staging path does not exist: {self._code_overseer_configuration.code_staging_directory_path}")
+            self._logger.info("Listing staging file paths")
+
+            code_file_paths = []
+
+            ignore_matcher = gitmatch.compile(self._code_overseer_configuration.ignore_patterns)
+            include_matcher = gitmatch.compile(self._code_overseer_configuration.include_only_patterns) if self._code_overseer_configuration.include_only_patterns else None
+            for root, dirs, files in os.walk(self._code_overseer_configuration.code_staging_directory_path):
+                # Filter out ignored directories
+                dirs[:] = [
+                    d for d in dirs
+                    if not ignore_matcher.match(os.path.relpath(os.path.join(root, d), self._code_overseer_configuration.code_staging_directory_path))
+                ]
+
+                for file in files:
+                    file = file
+                    rel_file_path = os.path.relpath(os.path.join(root, file), self._code_overseer_configuration.code_staging_directory_path)
+
+                    # Ignore files matching ignore_patterns or under node_modules/dist
+                    if ignore_matcher.match(rel_file_path):
+                        continue
+
+                    # If include_only_patterns is set, only include files matching those patterns
+                    if include_matcher and not include_matcher.match(rel_file_path):
+                        continue
+                    
+                    rel_file_path = os.path.join(root, file)
+                    rel_file_path = normalize_path(rel_file_path)
+                    code_file_paths.append(rel_file_path)
+            return Result.ok(code_file_paths)
+        except Exception as e:
+            return Result.err(str(e))
 
     def apply_code_change(self, change_strategic_description: str) -> Result[Unit]:
         '''
@@ -78,7 +122,14 @@ class CodeOverseer:
         '''
         self._logger.info(f"Handling code change: {change_strategic_description}")
 
-        res_codebase_file_paths = self.list_code_file_paths()
+        # Copy current codebase to staging
+        res_copy = self._copy_codebase_to_staging()
+        if res_copy.is_err():
+            return Result.err(f"Failed to copy codebase to staging: {res_copy.message}")
+        self._logger.info("Successfully copied codebase to staging")
+
+        # List code file paths in staging
+        res_codebase_file_paths = self.list_staging_file_paths()
         if res_codebase_file_paths.is_err():
             return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
         codebase_file_paths = res_codebase_file_paths.unwrap()
@@ -97,7 +148,7 @@ class CodeOverseer:
         # Execute each code change command
         for command in code_change_commands:
             self._logger.info(f"Executing command: {command}")
-            res_execution = command.execute(self._code_overseer_configuration.code_directory_path)
+            res_execution = command.execute(self._code_overseer_configuration.code_staging_directory_path)
             if res_execution.is_err():
                 self._logger.error(f"Failed to execute command {command}: {res_execution.message}")
                 return Result.err(f"Failed to execute command {command}: {res_execution.message}")
@@ -108,7 +159,7 @@ class CodeOverseer:
             done_received: bool = False
             reprompt_attempts: int = 0
             while not done_received:
-                res_codebase_file_paths = self.list_code_file_paths()
+                res_codebase_file_paths = self.list_staging_file_paths()
                 if res_codebase_file_paths.is_err():
                     return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
                 codebase_file_paths = res_codebase_file_paths.unwrap()
@@ -130,13 +181,118 @@ class CodeOverseer:
                         self._logger.info("Received DONE command, finishing reprompting")
                         done_received = True
                         break
-                    
-                    res_execution = command.execute(self._code_overseer_configuration.code_directory_path)
+
+                    res_execution = command.execute(self._code_overseer_configuration.code_staging_directory_path)
                     if res_execution.is_err():
                         self._logger.error(f"Failed to execute reprompt command {command}: {res_execution.message}")
                         return Result.err(f"Failed to execute reprompt command {command}: {res_execution.message}")
                     self._logger.info(f"Successfully executed reprompt command: {command}")
                 
                 reprompt_attempts += 1
+            self._logger.info(f"Finished reprompting after {reprompt_attempts} attempts")
+        # Copy staging back to codebase
+        res_copy_back = self._copy_staging_to_codebase()
+        if res_copy_back.is_err():
+            return Result.err(f"Failed to copy staging back to codebase: {res_copy_back.message}")
+        self._logger.info("Successfully copied staging back to codebase")
+        # Remove staging directory
+        res_remove_staging = self._remove_staging_directory()
+        if res_remove_staging.is_err():
+            return Result.err(f"Failed to remove staging directory: {res_remove_staging.message}")
+        self._logger.info("Successfully removed staging directory")
 
         return Result.ok(Unit())
+
+    def _copy_codebase_to_staging(self) -> Result[Unit]:
+        '''
+        Copies the current codebase to the staging directory.
+        Returns:
+            Result[Unit]: Result indicating success or failure
+        '''
+        try:
+            if os.path.exists(self._code_overseer_configuration.code_staging_directory_path):
+                self._logger.info(f"Removing existing staging directory: {self._code_overseer_configuration.code_staging_directory_path}")
+
+                shutil.rmtree(self._code_overseer_configuration.code_staging_directory_path)
+
+            self._logger.info(f"Copying codebase from {self._code_overseer_configuration.code_directory_path} to staging directory {self._code_overseer_configuration.code_staging_directory_path}")
+            # Create staging directory by copying codebase without the ignored files
+            shutil.copytree(
+                self._code_overseer_configuration.code_directory_path,
+                self._code_overseer_configuration.code_staging_directory_path,
+                ignore=CodeOverseer._create_file_filter(self._code_overseer_configuration.ignore_patterns),
+            )
+            # remove files that are not in include_only_patterns if set
+            if self._code_overseer_configuration.include_only_patterns:
+                for root, dirs, files in os.walk(self._code_overseer_configuration.code_staging_directory_path):
+                    for file in files:
+                        file_path = os.path.relpath(os.path.join(root, file), self._code_overseer_configuration.code_staging_directory_path)
+                        include_matcher = gitmatch.compile(self._code_overseer_configuration.include_only_patterns)
+                        if not include_matcher.match(file_path):
+                            os.remove(os.path.join(root, file))
+
+            return Result.ok(Unit())
+        except Exception as e:
+            return Result.err(f"Failed to copy codebase to staging: {e}")
+
+
+    def _copy_staging_to_codebase(self) -> Result[Unit]:
+        '''
+        Copies the staging directory back to the codebase directory.
+        Returns:
+            Result[Unit]: Result indicating success or failure
+        '''
+        try:
+            self._logger.info(f"Copying staging directory from {self._code_overseer_configuration.code_staging_directory_path} to codebase directory {self._code_overseer_configuration.code_directory_path}")
+
+            # Remove files in the staging directory that are not exclusively included
+            if self._code_overseer_configuration.include_only_patterns:
+                for root, dirs, files in os.walk(self._code_overseer_configuration.code_staging_directory_path):
+                    for file in files:
+                        file_path = os.path.relpath(os.path.join(root, file), self._code_overseer_configuration.code_staging_directory_path)
+                        include_matcher = gitmatch.compile(self._code_overseer_configuration.include_only_patterns)
+                        if not include_matcher.match(file_path):
+                            os.remove(os.path.join(root, file))
+
+            # Copy staging back to codebase, overwriting existing files that are not ignored
+            shutil.copytree(
+                self._code_overseer_configuration.code_staging_directory_path,
+                self._code_overseer_configuration.code_directory_path,
+                ignore=CodeOverseer._create_file_filter(self._code_overseer_configuration.ignore_patterns),
+                dirs_exist_ok=True
+            )
+            return Result.ok(Unit())
+        except Exception as e:
+            return Result.err(f"Failed to copy staging to codebase: {e}")
+
+    def _remove_staging_directory(self) -> Result[Unit]:
+        '''
+        Removes the staging directory.
+        Returns:
+            Result[Unit]: Result indicating success or failure
+        '''
+        try:
+            if os.path.exists(self._code_overseer_configuration.code_staging_directory_path):
+                self._logger.info(f"Removing staging directory: {self._code_overseer_configuration.code_staging_directory_path}")
+                shutil.rmtree(self._code_overseer_configuration.code_staging_directory_path)
+            return Result.ok(Unit())
+        except Exception as e:
+            return Result.err(f"Failed to remove staging directory: {e}")
+        
+    
+    @staticmethod
+    def _create_file_filter(ignore_patterns: list[str]):
+        return lambda dir, files: CodeOverseer._filter_files(dir, files, ignore_patterns)
+
+    @staticmethod    
+    def _filter_files(dir: str, files: list[str], ignore_patterns: list[str]) -> list[str]:
+        import gitmatch
+        ignore_matcher = gitmatch.compile(ignore_patterns)
+
+        ignored = []
+        for file in files:
+            rel_path = os.path.relpath(os.path.join(dir, file))
+            # Ignore if matches ignore_patterns
+            if ignore_matcher.match(rel_path):
+                ignored.append(file)
+        return ignored

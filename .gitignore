@@ -211,4 +211,4 @@ configuration.*.json
 !configuration.template.json
 
 **/logs/
-**/codebase
+**/codebase*

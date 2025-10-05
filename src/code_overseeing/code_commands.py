@@ -40,7 +40,12 @@ class DeleteCodeCommand(CodeCommand):
 
     def execute(self, path_prefix: str = None) -> Result[Unit]:
         try:
-            target_file_path = os.path.join(path_prefix, self.file_path) if path_prefix else self.file_path
+            target_file_path = self.file_path
+            # Ensure that the file_path starts with the path_prefix if the prefix is provided
+            # if not fix the the target_file_path to be inside the path_prefix
+            if path_prefix and not self.file_path.startswith(path_prefix):
+                target_file_path = os.path.normpath(os.path.join(path_prefix, self.file_path))
+
             lines: List[str] = []
             # check if file exists, and readlines
             # if not, leave as empty lines
@@ -101,7 +106,12 @@ class AddCodeCommand(CodeCommand):
             Result[Unit]: Result indicating success or failure
         '''
         try:
-            target_file_path = os.path.join(path_prefix, self.file_path) if path_prefix else self.file_path
+            target_file_path = self.file_path
+            # Ensure that the file_path starts with the path_prefix if the prefix is provided
+            # if not fix the the target_file_path to be inside the path_prefix
+            if path_prefix and not self.file_path.startswith(path_prefix):
+                target_file_path = os.path.normpath(os.path.join(path_prefix, self.file_path))
+            
             lines: List[str] = []
             # check if file exists, and readlines
             # if not, use as empty lines
@@ -161,7 +171,12 @@ class UpdateFileCommand(CodeCommand):
             Result[Unit]: Result indicating success or failure
         '''
         try:
-            target_file_path = os.path.join(path_prefix, self.file_path) if path_prefix else self.file_path
+            target_file_path = self.file_path
+            # Ensure that the file_path starts with the path_prefix if the prefix is provided
+            # if not fix the the target_file_path to be inside the path_prefix
+            if path_prefix and not self.file_path.startswith(path_prefix):
+                target_file_path = os.path.normpath(os.path.join(path_prefix, self.file_path))
+            # write new content to file
             with open(target_file_path, 'w') as file:
                 file.write(self.new_content)
             return Result.ok(Unit())
