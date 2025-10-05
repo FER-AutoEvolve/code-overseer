@@ -14,6 +14,7 @@
     },
     "CodeOverseer": {
         "CodeDirectory": "${CODE_DIRECTORY}",
+        "CodeStagingDirectory": "${CODE_STAGING_DIRECTORY}",
         "IgnorePatterns": [
             "**/node_modules/",
             "**/dist/",

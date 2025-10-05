@@ -22,6 +22,7 @@ ENV CODEBASE_DESCRIPTION="Default description" \
     PROMPTING_TOP_P="1.0" \
     PROMPTING_TIMEOUT="60" \
     CODE_DIRECTORY="./codebase" \
+    CODE_STAGING_DIRECTORY="./codebase_staging" \
     FASTAPI_PORT="3000" \
     REPROMPT_ON_CHANGE="false"
 
