@@ -12,7 +12,8 @@ RUN pip install --upgrade pip && \
 
 RUN apt-get update && apt-get install -y gettext-base
 
-ENV CODEBASE_DESCRIPTION="Default description" \
+# Set arguments for environment variables
+ARG CODEBASE_DESCRIPTION="Default description" \
     CODE_COMMAND_STRATEGY="update_file" \
     PROMPTING_PROVIDER="OpenAI" \
     PROMPTING_API_KEY="your-api-key" \
@@ -24,7 +25,23 @@ ENV CODEBASE_DESCRIPTION="Default description" \
     CODE_DIRECTORY="./codebase" \
     CODE_STAGING_DIRECTORY="./codebase_staging" \
     FASTAPI_PORT="3000" \
-    REPROMPT_ON_CHANGE="false"
+    REPROMPT_ON_CHANGE="true"
+
+
+# Set default environment variables
+ENV CODEBASE_DESCRIPTION=${CODEBASE_DESCRIPTION} \
+    CODE_COMMAND_STRATEGY=${CODE_COMMAND_STRATEGY} \
+    PROMPTING_PROVIDER=${PROMPTING_PROVIDER} \
+    PROMPTING_API_KEY=${PROMPTING_API_KEY} \
+    PROMPTING_MODEL=${PROMPTING_MODEL} \
+    PROMPTING_TEMPERATURE=${PROMPTING_TEMPERATURE} \
+    PROMPTING_MAX_TOKENS=${PROMPTING_MAX_TOKENS} \
+    PROMPTING_TOP_P=${PROMPTING_TOP_P} \
+    PROMPTING_TIMEOUT=${PROMPTING_TIMEOUT} \
+    CODE_DIRECTORY=${CODE_DIRECTORY} \
+    CODE_STAGING_DIRECTORY=${CODE_STAGING_DIRECTORY} \
+    FASTAPI_PORT=${FASTAPI_PORT} \
+    REPROMPT_ON_CHANGE=${REPROMPT_ON_CHANGE}
 
 RUN envsubst < /app/configuration.template.json > /app/configuration.json
 RUN rm /app/configuration.template.json
