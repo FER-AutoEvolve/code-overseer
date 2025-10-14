@@ -55,7 +55,7 @@ class ApiServer:
         
         from fastapi import Body
 
-        @self._app.post("/code_change")
+        @self._app.post("/code-change")
         async def _code_change(request: CodeChangeRequest = Body(...)):
             '''Handles code change requests
              Args:
