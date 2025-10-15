@@ -14,19 +14,21 @@ class ApiServer:
     _is_task_running: bool = dataclasses.field(default=False, init=False)
     _apiConfiguration: FastApiConfiguration
     _code_overseer: CodeOverseer
-    _server: Any
+    _server: uvicorn.Server | None = dataclasses.field(default=None, init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
     _app: FastAPI = dataclasses.field(default_factory=lambda: FastAPI(), init=False)
 
     def start_server(self) -> Result[Unit]:
         '''
-        Starts the FastAPI server
+        Starts the FastAPI server and blocks the current thread.
         Returns:
             Result[Unit]: Result indicating success or failure.
         '''
         try:
             self._define_endpoints()
-            self._server = uvicorn.run(self._app, host=self._apiConfiguration.host, port=self._apiConfiguration.port, log_config=None, log_level=self._logger.level)
+            server_config = uvicorn.Config(app=self._app, host=self._apiConfiguration.host, port=self._apiConfiguration.port, log_level=self._logger.level)
+            self._server = uvicorn.Server(config=server_config)
+            self._server.run()
             return Result.ok(Unit())
         except Exception as e:
             return Result.err(str(e))
@@ -39,7 +41,7 @@ class ApiServer:
         '''
         try:
             # stop the server
-            self._server.stop()
+            self._server.shutdown()
             return Result.ok(Unit())
         except Exception as e:
             return Result.err(str(e))
