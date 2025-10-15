@@ -44,12 +44,18 @@ def main(configuration_file_path: str) -> Result[Unit]:
 
     # start the Fast API server
     server = ApiServer(config.fast_api_config, code_overseer, logging.getLogger())
+    # block the current thread if starting the server was successful
     res_server_start = server.start_server()
     if res_server_start.is_err():
         logging.error(f"Error starting the FastAPI server: {res_server_start.message}")
         return Result.err(res_server_start.message)
     logging.info(f"FastAPI server started successfully")
 
+    # block the current thread if starting the server was successful
+    res_server_wait = server.wait_for_server_to_stop()
+    if res_server_wait.is_err():
+        logging.error(f"Error while running FastAPI server: {res_server_wait.message}")
+        return Result.err(res_server_wait.message)
 
     logging.info(f"Program ended successfully")
     return Result.ok(Unit())
