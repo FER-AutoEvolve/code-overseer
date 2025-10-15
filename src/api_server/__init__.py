@@ -6,6 +6,7 @@ from configuration import FastApiConfiguration
 from core import Result, Unit
 import uvicorn
 import logging
+import threading
 
 from api_server.dtos import CodeChangeRequest
 
@@ -17,6 +18,7 @@ class ApiServer:
     _server: uvicorn.Server | None = dataclasses.field(default=None, init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
     _app: FastAPI = dataclasses.field(default_factory=lambda: FastAPI(), init=False)
+    _server_thread: threading.Thread | None = dataclasses.field(default=None, init=False)
 
     def start_server(self) -> Result[Unit]:
         '''
@@ -28,7 +30,21 @@ class ApiServer:
             self._define_endpoints()
             server_config = uvicorn.Config(app=self._app, host=self._apiConfiguration.host, port=self._apiConfiguration.port, log_level=self._logger.level)
             self._server = uvicorn.Server(config=server_config)
-            self._server.run()
+            self._server_thread = threading.Thread(target=self._server.run, daemon=True)
+            self._server_thread.start()
+            return Result.ok(Unit())
+        except Exception as e:
+            return Result.err(str(e))
+        
+    def wait_for_server_to_stop(self) -> Result[Unit]:
+        '''
+        Waits for the FastAPI server to stop.
+        Returns:
+            Result[Unit]: Result indicating success or failure.
+        '''
+        try:
+            if self._server_thread and self._server_thread.is_alive():
+                self._server_thread.join()
             return Result.ok(Unit())
         except Exception as e:
             return Result.err(str(e))
@@ -41,7 +57,10 @@ class ApiServer:
         '''
         try:
             # stop the server
-            self._server.shutdown()
+            if self._server:
+                self._server.should_exit = True
+            if self._server_thread:
+                self._server_thread.join()
             return Result.ok(Unit())
         except Exception as e:
             return Result.err(str(e))
