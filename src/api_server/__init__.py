@@ -22,7 +22,7 @@ class ApiServer:
 
     def start_server(self) -> Result[Unit]:
         '''
-        Starts the FastAPI server and blocks the current thread.
+        Starts the FastAPI server in separate thread.
         Returns:
             Result[Unit]: Result indicating success or failure.
         '''
