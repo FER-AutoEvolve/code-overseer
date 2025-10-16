@@ -22,7 +22,16 @@ The code overseer component repository with dockerization. Accepts a strategic c
     ]
 }
 ```
-3. Reset the codebase directory by running `python ./reset_codebase.py`.
+
+3. Prepare python venv and install requiremets in it:
+
+    `python -m venv env`
+
+    `./env/Scripts/activate`
+
+    `pip install -r ./requirements.txt`
+
+4. Reset the codebase directory by running `python ./reset_codebase.py`.
 
 ## Run in docker
 > This container is intended to be run as part of a docker compose and not specifically as a standalone container
@@ -31,7 +40,7 @@ The Dockerfile contains two stages. The `base` stage only starts the code-overse
 
 1. Build the Docker image: 
 
-    `docker build -t code-overseer .`
+    `docker build -t code-overseer --build-args PORT=3000 .`
 
 2. Run the Docker container:
 
