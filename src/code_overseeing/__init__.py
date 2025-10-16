@@ -7,6 +7,7 @@ from code_overseeing.configuration import CodeOverseerConfiguration
 from core import Result, Unit
 import os
 import gitmatch
+import keypoint_notification
 from prompting.openai import BasePromptManager
 from prompting.prompts import GetCodeChangeCommandsPromptContext
 from code_overseeing.code_commands import CodeCommand, CommandTypes
@@ -121,7 +122,9 @@ class CodeOverseer:
             Result[Unit]: Result indicating success or failure
         '''
         self._logger.info(f"Handling code change: {change_strategic_description}")
+        self._logger.keypoint(f"Received code change task: {change_strategic_description}", event_type=keypoint_notification.EventTypes.INFO)
 
+        self._logger.keypoint(f"Preparing staging area for code changes...", event_type=keypoint_notification.EventTypes.INFO)
         # Copy current codebase to staging
         res_copy = self._copy_codebase_to_staging()
         if res_copy.is_err():
@@ -133,6 +136,8 @@ class CodeOverseer:
         if res_codebase_file_paths.is_err():
             return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
         codebase_file_paths = res_codebase_file_paths.unwrap()
+
+        self._logger.keypoint(f"Code is now in staging area. Starting initial prompt to get code change commands!", event_type=keypoint_notification.EventTypes.INFO)
         
         # Get code change commands from the prompt manager
         res_code_change_commands = self._prompt_manager.execute_code_change_commands_prompt(
@@ -141,9 +146,12 @@ class CodeOverseer:
         )
 
         if res_code_change_commands.is_err():
+            self._logger.error(f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}")
+            self._logger.keypoint(f"Failed to get code change commands from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
             return Result.err(f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}")
         code_change_commands = res_code_change_commands.unwrap()
         self._logger.info(f"Received {len(code_change_commands)} code change commands from prompt manager")
+        self._logger.keypoint(f"Received {len(code_change_commands)} code change commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.SUCCESS)
 
         # Execute each code change command from the primary prompt in the staging directory
         for command in code_change_commands:
@@ -153,9 +161,13 @@ class CodeOverseer:
                 self._logger.error(f"Failed to execute command {command}: {res_execution.message}")
                 return Result.err(f"Failed to execute command {command}: {res_execution.message}")
             self._logger.info(f"Successfully executed command: {command}")
-        
+
+        self._logger.keypoint(f"Successfully executed all {len(code_change_commands)} code change commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
+
         # Execute reprompt if configured until DONE is received and execute in staging directory
         if self._code_overseer_configuration.reprompt_on_change:
+            self._logger.info("Starting reprompting for additional code changes")
+            self._logger.keypoint(f"Starting reprompting for additional code changes", event_type=keypoint_notification.EventTypes.INFO)
             done_received: bool = False
             reprompt_attempts: int = 0
             while not done_received:
@@ -165,16 +177,20 @@ class CodeOverseer:
                 codebase_file_paths = res_codebase_file_paths.unwrap()
 
                 self._logger.info(f"Executing code change reprompt {reprompt_attempts + 1}")
+                self._logger.keypoint(f"Executing code change reprompt no. {reprompt_attempts + 1}", event_type=keypoint_notification.EventTypes.INFO)
                 res_reprompt = self._prompt_manager.execute_code_change_reprompt(
                     strategic_description=change_strategic_description,
                     code_file_paths=codebase_file_paths
                 )
 
                 if res_reprompt.is_err():
+                    self._logger.error(f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}")
+                    self._logger.keypoint(f"Failed to get code change reprompt from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
                     return Result.err(f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}")
                 reprompt_commands = res_reprompt.unwrap()
                 self._logger.info(f"Received {len(reprompt_commands)} reprompt commands from prompt manager")
-
+                self._logger.keypoint(f"Received {len(reprompt_commands)} commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
+                
                 for command in reprompt_commands:
                     self._logger.info(f"Executing reprompt command: {command}")
                     if command.command_type == CommandTypes.DONE:
@@ -188,9 +204,14 @@ class CodeOverseer:
                         return Result.err(f"Failed to execute reprompt command {command}: {res_execution.message}")
                     self._logger.info(f"Successfully executed reprompt command: {command}")
                 
+                self._logger.info(f"Finished executing reprompt {reprompt_attempts + 1} commands")
+                self._logger.keypoint(f"Successfully executed all {len(reprompt_commands)} reprompt commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
                 reprompt_attempts += 1
+
             self._logger.info(f"Finished reprompting after {reprompt_attempts} attempts")
+            self._logger.keypoint(f"Finished reprompting after {reprompt_attempts} attempts", event_type=keypoint_notification.EventTypes.SUCCESS)
         
+        self._logger.keypoint(f"Code changes applied successfully in staging area. Copying changes back to codebase...", event_type=keypoint_notification.EventTypes.INFO)
         # Copy staging back to codebase
         res_copy_back = self._copy_staging_to_codebase()
         if res_copy_back.is_err():
@@ -202,6 +223,8 @@ class CodeOverseer:
         if res_remove_staging.is_err():
             return Result.err(f"Failed to remove staging directory: {res_remove_staging.message}")
         self._logger.info("Successfully removed staging directory")
+
+        self._logger.keypoint(f"Code changes successfully applied to codebase! Your changes should be live soon!", event_type=keypoint_notification.EventTypes.SUCCESS)
 
         return Result.ok(Unit())
 

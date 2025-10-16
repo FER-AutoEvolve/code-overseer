@@ -1,5 +1,4 @@
 import dataclasses
-from typing import Any
 from fastapi import FastAPI, HTTPException
 from code_overseeing import CodeOverseer
 from configuration import FastApiConfiguration
@@ -7,7 +6,6 @@ from core import Result, Unit
 import uvicorn
 import logging
 import threading
-
 from api_server.dtos import CodeChangeRequest
 
 @dataclasses.dataclass(frozen=False)

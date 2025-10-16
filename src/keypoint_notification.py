@@ -3,22 +3,17 @@ import enum
 import datetime
 import logging
 from typing import Optional, Any, Dict
-
-import pydantic
 import threading
-import json
-import urllib.request
-import urllib.error
-
-
 import requests
-
 from configuration import KeypointNotificationConfiguration
 
+'''
+Module for sending keypoint notifications to a configured HTTP endpoint. Expectedly a web-game-wrapper component.
+'''
 
 class EventTypes(enum.Enum):
 	'''
-	Enumeration of event types in the evolutionary system.
+	Enumeration of event types in the entire evolutionary system.
 	'''
 	SUCCESS = "Success"
 	'''Indicates a successful event'''
@@ -98,6 +93,11 @@ def _logger_keypoint(self, message: str, *args, event_type: EventTypes = EventTy
     '''
     Logger method that will send a keypoint notification instead of writing to log handlers.
     It expects a globally configured notifier to be available as `global_keypoint_notifier`.
+	Parameters:
+		message The message to include in the notification.
+		event_type The type of event (default: EventTypes.INFO).
+		source Optional source override (default: "Code Overseer").
+		*args Additional positional arguments (ignored).
     '''
     # Build notification
     ts = datetime.datetime.now(datetime.timezone.utc)
@@ -121,14 +121,17 @@ def _logger_keypoint(self, message: str, *args, event_type: EventTypes = EventTy
 logging.Logger.keypoint = _logger_keypoint  # type: ignore[attr-defined]
 
 
-# Global notifier instance (optional)
-global_keypoint_notifier: Optional[KeypointNotifier] = None
 
+global_keypoint_notifier: Optional[KeypointNotifier] = None
+'''
+Global keypoint notifier instance. Must be configured via `configure_keypoint_notifier` before use.
+'''
 
 def configure_keypoint_notifier(config: KeypointNotificationConfiguration):
 	'''
-	Configure the global keypoint notifier from a dictionary (e.g., loaded from configuration.json).
-	If config_obj is None or missing, the notifier remains disabled (None).
+	Configure and initialize the global keypoint notifier instance.
+	Parameters:
+		config Configuration for the keypoint notifier.
 	'''
 	global global_keypoint_notifier
 	global_keypoint_notifier = KeypointNotifier(config)
