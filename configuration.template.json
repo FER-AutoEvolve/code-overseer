@@ -29,5 +29,9 @@
     "FastApi": {
         "Host": "0.0.0.0",
         "Port": ${FASTAPI_PORT}
+    },
+    "KeypointNotification": {
+        "Enabled": ${KEYPOINT_NOTIFICATION_ENABLED},
+        "Endpoint": "${KEYPOINT_NOTIFICATION_ENDPOINT}"
     }
 }
