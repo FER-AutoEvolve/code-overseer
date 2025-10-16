@@ -22,7 +22,7 @@ class PromptManager(BasePromptManager):
         _logger (logging.Logger): Logger for logging information and errors.
     '''
     _openai_configuration: OpenAiConfiguration = dataclasses.field(init=False)
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
     def __post_init__(self):
         object.__setattr__(self, '_openai_configuration', OpenAiConfiguration.from_dict(self._prompting_configuration.provider_config).unwrap())

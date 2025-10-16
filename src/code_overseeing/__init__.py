@@ -18,7 +18,7 @@ class CodeOverseer:
     '''
     _code_overseer_configuration: CodeOverseerConfiguration
     _prompt_manager: BasePromptManager
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
     def list_codebase_file_paths(self) -> Result[List[str]]:
         '''

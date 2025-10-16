@@ -8,6 +8,7 @@ from api_server import ApiServer
 from core import Result, Unit
 from code_overseeing import CodeOverseer
 from configuration import Configuration
+import keypoint_notification
 from prompting.openai import PromptManager
 from prompting.openai.configuration import OpenAiConfiguration
 
@@ -35,6 +36,14 @@ def main(configuration_file_path: str) -> Result[Unit]:
 
     logging.info(f"Configuration file loaded successfully")
 
+    # Setup keypoint notification
+    if config.keypoint_notification_config is not None:
+        keypoint_notification.configure_keypoint_notifier(config.keypoint_notification_config)
+        logging.info(f"Keypoint notification configured successfully")
+    else:
+        logging.info(f"No keypoint notification configuration found, skipping keypoint notification setup")
+    logging.getLogger().keypoint(f"Setup keypoint notification on Code Overseer", event_type = keypoint_notification.EventTypes.WARNING)
+
     # Setup prompt manager
     prompting_config = config.prompting_config
     prompt_manager = PromptManager(prompting_config, logging.getLogger())
@@ -50,7 +59,7 @@ def main(configuration_file_path: str) -> Result[Unit]:
         logging.error(f"Error starting the FastAPI server: {res_server_start.message}")
         return Result.err(res_server_start.message)
     logging.info(f"FastAPI server started successfully")
-
+    
     # block the current thread if starting the server was successful
     res_server_wait = server.wait_for_server_to_stop()
     if res_server_wait.is_err():

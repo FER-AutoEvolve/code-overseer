@@ -14,7 +14,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
     '''Implementation of IGetCodeChangeCommandsPrompt using OpenAI API.'''
     _openai_settings: OpenAiConfiguration
     _openai_client: openai.OpenAI = dataclasses.field(init=False)
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
     def __post_init__(self) -> None:
         object.__setattr__(self, '_openai_client', openai.OpenAI(

@@ -28,5 +28,9 @@
     "FastApi": {
         "Host": "0.0.0.0",
         "Port": 3000
+    },
+    "KeypointNotification": {
+        "Enabled": true,
+        "Endpoint": "http://game-web-wrapper:8001/notify-of-event"
     }
 }

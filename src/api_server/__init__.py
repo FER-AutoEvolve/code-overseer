@@ -16,7 +16,7 @@ class ApiServer:
     _apiConfiguration: FastApiConfiguration
     _code_overseer: CodeOverseer
     _server: uvicorn.Server | None = dataclasses.field(default=None, init=False)
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
     _app: FastAPI = dataclasses.field(default_factory=lambda: FastAPI(), init=False)
     _server_thread: threading.Thread | None = dataclasses.field(default=None, init=False)
 
