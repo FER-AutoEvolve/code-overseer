@@ -42,7 +42,6 @@ def main(configuration_file_path: str) -> Result[Unit]:
         logging.info(f"Keypoint notification configured successfully")
     else:
         logging.info(f"No keypoint notification configuration found, skipping keypoint notification setup")
-    logging.getLogger().keypoint(f"Setup keypoint notification on Code Overseer", event_type = keypoint_notification.EventTypes.WARNING)
 
     # Setup prompt manager
     prompting_config = config.prompting_config
