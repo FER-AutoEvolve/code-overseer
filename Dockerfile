@@ -12,22 +12,25 @@ RUN pip install --upgrade pip && \
 
 RUN apt-get update && apt-get install -y gettext-base
 
-# Set arguments for environment variables
-ARG CODEBASE_DESCRIPTION="Default description" \
-    CODE_COMMAND_STRATEGY="update_file" \
-    PROMPTING_PROVIDER="OpenAI" \
-    PROMPTING_API_KEY="your-api-key" \
-    PROMPTING_MODEL="gpt-4.1" \
-    PROMPTING_TEMPERATURE="0.2" \
-    PROMPTING_MAX_TOKENS="3000" \
-    PROMPTING_TOP_P="1.0" \
-    PROMPTING_TIMEOUT="60" \
-    CODE_DIRECTORY="./codebase" \
-    CODE_STAGING_DIRECTORY="./codebase_staging" \
-    FASTAPI_PORT="3000" \
-    REPROMPT_ON_CHANGE="true" \
-    KEYPOINT_NOTIFICATION_ENABLED="false" \
-    KEYPOINT_NOTIFICATION_ENDPOINT="http://game-web-wrapper:8001/notify-of-event"
+
+# Set arguments for environment variables (one per line)
+ARG CODEBASE_DESCRIPTION="Default description"
+ARG CODE_COMMAND_STRATEGY="update_file"
+ARG PROMPTING_PROVIDER="OpenAI"
+ARG PROMPTING_API_KEY="your-api-key"
+ARG PROMPTING_MODEL="gpt-4.1"
+ARG PROMPTING_TEMPERATURE="0.2"
+ARG PROMPTING_MAX_TOKENS="3000"
+ARG PROMPTING_TOP_P="1.0"
+ARG PROMPTING_TIMEOUT="60"
+ARG CODE_DIRECTORY="./codebase"
+ARG CODE_STAGING_DIRECTORY="./codebase_staging"
+ARG FASTAPI_PORT="3000"
+ARG REPROMPT_ON_CHANGE="true"
+ARG KEYPOINT_NOTIFICATION_ENABLED="false"
+ARG KEYPOINT_NOTIFICATION_ENDPOINT="http://game-web-wrapper:8001/notify-of-event"
+ARG CODE_IGNORE_PATTERNS="\"**/node_modules/\", \"**/dist/\", \".vscode/\", \".git/\""
+ARG CODE_INCLUDE_ONLY_PATTERNS="\"*.ts\", \"*.png\""
 
 
 # Set default environment variables
@@ -45,7 +48,9 @@ ENV CODEBASE_DESCRIPTION=${CODEBASE_DESCRIPTION} \
     FASTAPI_PORT=${FASTAPI_PORT} \
     REPROMPT_ON_CHANGE=${REPROMPT_ON_CHANGE} \
     KEYPOINT_NOTIFICATION_ENABLED=${KEYPOINT_NOTIFICATION_ENABLED} \
-    KEYPOINT_NOTIFICATION_ENDPOINT=${KEYPOINT_NOTIFICATION_ENDPOINT}
+    KEYPOINT_NOTIFICATION_ENDPOINT=${KEYPOINT_NOTIFICATION_ENDPOINT} \
+    CODE_IGNORE_PATTERNS=${CODE_IGNORE_PATTERNS} \
+    CODE_INCLUDE_ONLY_PATTERNS=${CODE_INCLUDE_ONLY_PATTERNS}
 
 RUN envsubst < /app/configuration.template.json > /app/configuration.json
 RUN rm /app/configuration.template.json

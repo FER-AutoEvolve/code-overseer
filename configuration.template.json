@@ -16,13 +16,10 @@
         "CodeDirectory": "${CODE_DIRECTORY}",
         "CodeStagingDirectory": "${CODE_STAGING_DIRECTORY}",
         "IgnorePatterns": [
-            "**/node_modules/",
-            "**/dist/",
-            ".vscode/",
-            ".git/"
+            ${CODE_IGNORE_PATTERNS}
         ],
         "IncludeOnlyPatterns": [
-            "*.ts"
+            ${CODE_INCLUDE_ONLY_PATTERNS}
         ],
         "RepromptOnChange": ${REPROMPT_ON_CHANGE}
     },

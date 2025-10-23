@@ -1,6 +1,6 @@
 {
     "Prompting": {
-        "CodebaseDescription": "",
+        "CodebaseDescription": "Codebase description goes here.",
         "CodeCommandStrategy": "update_file",
         "Provider": "OpenAI",
         "ProviderConfig": {
@@ -21,7 +21,8 @@
             ".git/"
         ],
         "IncludeOnlyPatterns": [
-            "*.ts"
+            "*.ts",
+            "*.png"
         ],
         "RepromptOnChange": true
     },
