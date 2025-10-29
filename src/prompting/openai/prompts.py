@@ -6,7 +6,7 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.openai.configuration import OpenAiConfiguration
-from prompting.prompts import GetCodeChangeCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
 
 
 @dataclasses.dataclass(frozen=True)
@@ -121,6 +121,77 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
             prompt_input = [{
                 "role": "user",
                 "content": context.strategic_change_description
+            }] + file_data
+
+            # Create prompt
+            response = self._openai_client.responses.create(
+                model=self._openai_settings.model,
+                max_output_tokens=self._openai_settings.max_tokens,
+                temperature=self._openai_settings.temperature,
+                top_p=self._openai_settings.top_p,
+                instructions=prompt_preamble,
+                input=prompt_input
+            )
+
+            response_text = response.output_text
+            self._logger.debug("OpenAI API call successful, parsing response")
+            code_commands: List[CodeCommand] = _parse_response(
+                response_text,
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+                )
+            self._logger.debug(f"Parsed {len(code_commands)} code commands")
+            return Result.ok(code_commands)
+        except Exception as e:
+            self._logger.error(f"OpenAI API call failed: {e}")
+            return Result.err(f"OpenAI API call failed: {e}")
+        
+@dataclasses.dataclass(frozen=True)
+class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
+    '''Implementation of IGetCodeFixCommandsPrompt using OpenAI API.'''
+    _openai_settings: OpenAiConfiguration
+    _openai_client: openai.OpenAI = dataclasses.field(init=False)
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, '_openai_client', openai.OpenAI(
+            api_key=self._openai_settings.api_key, 
+            timeout=self._openai_settings.timeout
+        ))
+
+    def execute(self, context: GetCodeFixCommandsPromptContext) -> Result[List[CodeCommand]]:
+        try:
+            self._logger.debug(f"Calling OpenAI API for code change reprompt with {len(context.code_file_paths)} code files")
+
+            # Prepare codebase files as text
+            file_data: List[dict] = []
+            for file_path in context.code_file_paths:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
+                    if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
+                        code_txt = _set_line_markers(code_txt)
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+
+            # Prompt content
+            prompt_content = + "Fix this current error:\n" + context.error_description \
+                + "\nThis is what must be implemented: \n" + context.strategic_change_description
+                
+
+            # The prompt input with the strategic description (user story) and the code files
+            prompt_input = [{
+                "role": "user",
+                "content": prompt_content
             }] + file_data
 
             # Create prompt

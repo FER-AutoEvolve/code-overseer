@@ -63,3 +63,17 @@ class PromptManager(BasePromptManager):
         )
         prompt = GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger)
         return prompt.execute(prompt_context)
+    
+    def execute_code_fix_prompt(self, strategic_description: str, error_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+        self._logger.info("Preparing code fix prompt context")
+
+        prompt_context = GetCodeFixCommandsPrompt(
+            strategic_change_description=strategic_description,
+            code_file_paths=code_file_paths,
+            error_description=error_description,
+            codebase_description=self._prompting_configuration.codebase_description,
+            code_command_strategy=self._prompting_configuration.code_command_strategy
+        )
+        prompt = GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger)
+        return prompt.execute(prompt_context)
+

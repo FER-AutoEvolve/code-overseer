@@ -79,6 +79,32 @@ class GetCodeChangeCommandsRepromptContext:
            'code_change_command_operational_instruction',
             chosen_code_change_instruction
            )
+        
+@dataclasses.dataclass(frozen=True)
+class GetCodeFixCommandsPromptContext:
+    '''
+    Context for generating additional code fix commands.
+    Attributes:
+        strategic_description (str): Description of the desired changes.
+        error_description (str): The reported code error to fix.
+        code_file_paths (List[str]): List of code file paths to consider.
+    '''
+    strategic_change_description: str
+    error_description: str
+    codebase_description: str
+    code_command_strategy: CodeCommandStrategies
+    code_file_paths: List[str] = dataclasses.field(default_factory=list)
+    code_change_command_operational_instruction: str = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        chosen_code_change_instruction = \
+            (__CODE_CHANGE_OPERATIONAL_INSTRUCTION_ADD_DELETE_STRATEGY_TEXT__ if self.code_command_strategy == CodeCommandStrategies.ADD_DELETE else __CODE_CHANGE_OPERATIONAL_INSTRUCTION_UPDATE_FILE_STRATEGY_TEXT__) \
+            + "\n" + __CODE_CHANGE_OPERATIONAL_REPROMPT_INSTRUCTION_TEXT__
+        object.__setattr__(
+            self, 
+           'code_change_command_operational_instruction',
+            chosen_code_change_instruction
+           )
 
 class IGetCodeChangeCommandsPrompt:
     '''
@@ -105,6 +131,21 @@ class IGetCodeChangeCommandsReprompt:
         Executes the reprompt with the given context.
         Args:
             context (GetCodeRepromptContext): The context for the reprompt.
+        Returns:
+            Result[List[CodeCommand]]: The result of the reprompt execution.
+        '''
+        pass
+
+class IGetCodeFixCommandsPrompt:
+    '''
+    Interface for generating additional code change commands for fixing breaking builds.
+    '''
+    @abstractmethod
+    def execute(self, context: GetCodeFixCommandsPromptContext) -> Result[List[CodeCommand]]:
+        '''
+        Executes the reprompt with the given context.
+        Args:
+            context (GetCodeFixPromptContext): The context for the reprompt.
         Returns:
             Result[List[CodeCommand]]: The result of the reprompt execution.
         '''

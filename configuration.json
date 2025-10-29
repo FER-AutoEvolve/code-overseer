@@ -33,5 +33,9 @@
     "KeypointNotification": {
         "Enabled": true,
         "Endpoint": "http://game-web-wrapper:8001/notify-of-event"
+    },
+    "CodeBuildTester":{
+        "Enabled": true,
+        "Endpoint": "http://code-build-tester:2000/try-build"
     }
 }

@@ -2,6 +2,7 @@ import dataclasses
 from enum import Enum
 
 from api_server.configuration import FastApiConfiguration
+from code_build_testing.configuration import CodeBuildTestingConfiguration
 from code_overseeing import CodeOverseerConfiguration
 from core import Result, Unit
 
@@ -79,6 +80,7 @@ class Configuration:
     fast_api_config: FastApiConfiguration
     code_overseer_config: CodeOverseerConfiguration
     keypoint_notification_config: KeypointNotificationConfiguration | None = dataclasses.field(default=None)
+    code_build_testing_config: CodeBuildTestingConfiguration | None = dataclasses.field(default=None)
 
     @staticmethod
     def from_dict(config: dict) -> Result['Configuration']:
@@ -94,6 +96,7 @@ class Configuration:
             res_fast_api_config = FastApiConfiguration.from_dict(config.get("FastApi", {}))
             res_code_overseer_config = CodeOverseerConfiguration.from_dict(config.get("CodeOverseer", {}))
             res_keypoint_notification_config = KeypointNotificationConfiguration.from_dict(config.get("KeypointNotification")) if config.get("KeypointNotification", None) else Result.ok(Unit())
+            res_code_build_testing_config = CodeBuildTestingConfiguration.from_dict(config.get("CodeBuildTesting")) if config.get("CodeBuildTesting", None) else Result.ok(Unit())
 
             if res_fast_api_config.is_err():
                 return Result.err(res_fast_api_config.message)
@@ -103,12 +106,15 @@ class Configuration:
                 return Result.err(res_keypoint_notification_config.message)
             if res_prompting_config.is_err():
                 return Result.err(res_prompting_config.message)
+            if res_code_build_testing_config.is_err():
+                return Result.err(res_code_build_testing_config.message)
             
             return Result.ok(Configuration(
                 prompting_config=res_prompting_config.value,
                 code_overseer_config=res_code_overseer_config.value,
                 fast_api_config=res_fast_api_config.value,
-                keypoint_notification_config=res_keypoint_notification_config.value if res_keypoint_notification_config.value != Unit() else None
+                keypoint_notification_config=res_keypoint_notification_config.value if res_keypoint_notification_config.value != Unit() else None,
+                code_build_testing_config=res_code_build_testing_config.value if res_code_build_testing_config.value != Unit() else None
             ))
         
         except ValueError as e:

@@ -46,6 +46,19 @@ class BasePromptManager:
             strategic_description (str): Description of the desired changes.
             code_file_paths (Optional[List[str]]): List of code file paths to consider. 
         Returns:
-            Result[None]: Success or an error message.
+            Result[List[CodeCommand]]: A list of code change commands or an error message.
+        '''
+        pass
+    
+    @abstractmethod
+    def execute_code_fix_prompt(self, strategic_description: str, error_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+        '''
+        Executes a prompt for code changes to fix a code error.
+        Parameters:
+            strategic_description (str): Description of the desired changes.
+            error_description: Description of the error to fix.
+            code_file_paths (Optional[List[str]]): List of code file paths to consider. 
+        Returns:
+            Result[List[CodeCommand]]: A list of code change commands or an error message.
         '''
         pass

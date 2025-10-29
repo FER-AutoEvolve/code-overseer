@@ -3,6 +3,7 @@ from enum import Enum
 import shutil
 import logging
 from typing import List
+from code_build_testing import CodeBuildTestProvider
 from code_overseeing.configuration import CodeOverseerConfiguration
 from core import Result, Unit
 import os
@@ -19,6 +20,7 @@ class CodeOverseer:
     '''
     _code_overseer_configuration: CodeOverseerConfiguration
     _prompt_manager: BasePromptManager
+    _code_build_test_provider: CodeBuildTestProvider|None = dataclasses.field(default=None)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
     def list_codebase_file_paths(self) -> Result[List[str]]:
@@ -211,6 +213,40 @@ class CodeOverseer:
             self._logger.info(f"Finished reprompting after {reprompt_attempts} attempts")
             self._logger.keypoint(f"Finished reprompting after {reprompt_attempts} attempts", event_type=keypoint_notification.EventTypes.SUCCESS)
         
+        # Initiate code build test if enabled
+        if self._code_build_test_provider:
+            self._logger.info("Testing if generated code builds correctly")
+            self._logger.keypoint(f"Testing if generated code builds correctly", event_type=keypoint_notification.EventTypes.INFO)
+            # Start error fix prompt and command execution while build fails
+            while (res_build_test := self._code_build_test_provider.try_build()).is_ok() and res_build_test.value.is_success == False:
+                self._logger.keypoint("Code test build failed. Will have to fix this", event_type=keypoint_notification.EventTypes.WARNING)
+                self._logger.warning("Code test build failed. Trying to generate fixes.")
+                
+                # Get the error message and execute a prompt to get the commands
+                build_test_error = res_build_test.value.error_message
+                res_code_fix_commands = self._prompt_manager.execute_code_fix_prompt(change_strategic_description, build_test_error, codebase_file_paths)
+                if res_code_fix_commands.is_err():
+                    self._logger.error(f"Failed to get code fixes from prompt manager: {res_code_fix_commands.message}")
+                    self._logger.keypoint(f"Failed to get code fixes from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    return Result.err(f"Failed to get code fixes from prompt manager: {res_code_fix_commands.message}")
+                # Execute all the commands
+                code_fix_commands = res_code_fix_commands.value
+                self._logger.info(f"Received {len(code_fix_commands)} code fix commands from prompt manager")
+                self._logger.keypoint(f"Received {len(code_fix_commands)} code fix commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
+                for code_fix_command in code_fix_commands:
+                    code_fix_command.execute(self._code_overseer_configuration.code_staging_directory_path)
+                self._logger.info(f"Executed {len(code_fix_commands)} code fix commands successfully")
+                self._logger.keypoint(f"Executed {len(code_fix_commands)} code fix commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
+            # Stop if the build request failed
+            if res_build_test.is_err():
+                self._logger.keypoint("Build test result acquisition failed!", event_type=keypoint_notification.EventTypes.FAILURE)
+                self._logger.error(f"Build test result acquisition failed: {res_build_test.message}")
+                return Result.err(f"Build test result acquisition failed: {res_build_test.message}")
+            # Just log if the code has passed the build test
+            if res_build_test.is_ok() and res_build_test.value.is_success:
+                self._logger.keypoint("Code passed the build test!", event_type=keypoint_notification.EventTypes.SUCCESS)
+                self._logger.info(f"Code passed the build test.")
+
         self._logger.keypoint(f"Code changes applied successfully in staging area. Copying changes back to codebase...", event_type=keypoint_notification.EventTypes.INFO)
         # Copy staging back to codebase
         res_copy_back = self._copy_staging_to_codebase()
@@ -218,8 +254,8 @@ class CodeOverseer:
             return Result.err(f"Failed to copy staging back to codebase: {res_copy_back.message}")
         self._logger.info("Successfully copied staging back to codebase")
         
-        # Remove staging directory
-        res_remove_staging = self._remove_staging_directory()
+        # Clean staging directory
+        res_remove_staging = self._clean_staging_directory()
         if res_remove_staging.is_err():
             return Result.err(f"Failed to remove staging directory: {res_remove_staging.message}")
         self._logger.info("Successfully removed staging directory")
@@ -236,9 +272,8 @@ class CodeOverseer:
         '''
         try:
             if os.path.exists(self._code_overseer_configuration.code_staging_directory_path):
-                self._logger.info(f"Removing existing staging directory: {self._code_overseer_configuration.code_staging_directory_path}")
-
-                shutil.rmtree(self._code_overseer_configuration.code_staging_directory_path)
+                self._logger.info(f"Cleaning existing staging directory: {self._code_overseer_configuration.code_staging_directory_path}")
+                self._clean_staging_directory()
 
             self._logger.info(f"Copying codebase from {self._code_overseer_configuration.code_directory_path} to staging directory {self._code_overseer_configuration.code_staging_directory_path}")
             # Create staging directory by copying codebase without the ignored files
@@ -303,6 +338,25 @@ class CodeOverseer:
             return Result.ok(Unit())
         except Exception as e:
             return Result.err(f"Failed to remove staging directory: {e}")
+        
+    def _clean_staging_directory(self) -> Result[Unit]:
+        '''
+        Cleans the staging directory without deleting it.
+        Returns:
+            Result[Unit]: Result indicating success or failure
+        '''
+        try:
+            if os.path.exists(self._code_overseer_configuration.code_staging_directory_path):
+                self._logger.info(f"Cleaning staging directory: {self._code_overseer_configuration.code_staging_directory_path}")
+                for entry in os.listdir(self._code_overseer_configuration.code_staging_directory_path):
+                    full_path = os.path.join(self._code_overseer_configuration.code_staging_directory_path, entry)
+                    if os.path.isfile(full_path) or os.path.islink(full_path):
+                        os.unlink(full_path)  # remove file or symlink
+                    elif os.path.isdir(full_path):
+                        shutil.rmtree(full_path)  # remove directory tree
+            return Result.ok(Unit())
+        except Exception as e:
+            return Result.err(f"Failed to clean staging directory: {e}")
         
     
     @staticmethod
