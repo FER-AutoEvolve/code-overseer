@@ -281,6 +281,7 @@ class CodeOverseer:
                 self._code_overseer_configuration.code_directory_path,
                 self._code_overseer_configuration.code_staging_directory_path,
                 ignore=CodeOverseer._create_file_filter(self._code_overseer_configuration.ignore_patterns),
+                dirs_exist_ok=True
             )
             # remove files that are not in include_only_patterns if set
             if self._code_overseer_configuration.include_only_patterns:
