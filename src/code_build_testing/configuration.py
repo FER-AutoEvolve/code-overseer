@@ -13,8 +13,8 @@ class CodeBuildTestingConfiguration:
     def from_dict(config: dict) -> Result['CodeBuildTestingConfiguration']:
         try:
             return Result.ok(CodeBuildTestingConfiguration(
-                is_enabled=config.get("IsEnabled"),
-                code_build_tester_endpoint=config.get("CodeBuildTesterEndpoint"),
+                is_enabled=config.get("Enabled"),
+                code_build_tester_endpoint=config.get("Endpoint"),
                 timeout=config.get("Timeout", __DEFAULT_TIMEOUT__)
             ))
         except Exception as e:
