@@ -36,6 +36,7 @@
     },
     "CodeBuildTester":{
         "Enabled": true,
-        "Endpoint": "http://code-build-tester:2000/try-build"
+        "Endpoint": "http://code-build-tester:2000/try-build",
+        "Timeout": 10000
     }
 }
