@@ -11,7 +11,7 @@ from prompting.openai.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeC
 import logging
 import openai
 
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext, GetCodeFixCommandsPromptContext
 
 @dataclasses.dataclass(frozen=True)
 class PromptManager(BasePromptManager):
@@ -67,7 +67,7 @@ class PromptManager(BasePromptManager):
     def execute_code_fix_prompt(self, strategic_description: str, error_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
         self._logger.info("Preparing code fix prompt context")
 
-        prompt_context = GetCodeFixCommandsPrompt(
+        prompt_context = GetCodeFixCommandsPromptContext(
             strategic_change_description=strategic_description,
             code_file_paths=code_file_paths,
             error_description=error_description,
