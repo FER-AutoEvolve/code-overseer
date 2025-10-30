@@ -33,6 +33,12 @@ class CodeBuildTestProvider:
     def try_build(self) -> Result[BuildResultDto]:
         try:
             response = requests.get(self._configuration.code_build_tester_endpoint, timeout=self._configuration.timeout)
-            response.content
+            if response.status_code != 200:
+                return Result.err(f"Code build tester returned non-200 status code: {response.status_code}")
+            dto = response.json()
+            res_build_result = BuildResultDto.from_dto(dto)
+            if res_build_result.is_err():
+                return Result.err(res_build_result.message)
+            return Result.ok(res_build_result.value)
         except Exception as e:
             return Result.err(f"Failed to get code test build result: {e}")
