@@ -31,9 +31,9 @@
         "Enabled": ${KEYPOINT_NOTIFICATION_ENABLED},
         "Endpoint": "${KEYPOINT_NOTIFICATION_ENDPOINT}"
     },
-    "CodeBuildTester":{
-        "Enabled": ${CODE_BUILD_TESTER_ENABLE},
-        "Endpoint": "${CODE_BUILD_TESTER_ENDPOINT}",
-        "Timeout": ${CODE_BUILD_TESTER_TIMEOUT}
+    "CodeBuildTesting":{
+        "Enabled": ${CODE_BUILD_TESTING_ENABLE},
+        "Endpoint": "${CODE_BUILD_TESTING_ENDPOINT}",
+        "Timeout": ${CODE_BUILD_TESTING_TIMEOUT}
     }
 }

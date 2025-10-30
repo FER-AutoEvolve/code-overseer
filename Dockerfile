@@ -31,9 +31,9 @@ ARG KEYPOINT_NOTIFICATION_ENABLED="false"
 ARG KEYPOINT_NOTIFICATION_ENDPOINT="http://game-web-wrapper:8001/notify-of-event"
 ARG CODE_IGNORE_PATTERNS="\"**/node_modules/\", \"**/dist/\", \".vscode/\", \".git/\""
 ARG CODE_INCLUDE_ONLY_PATTERNS="\"*.ts\", \"*.png\""
-ARG CODE_BUILD_TESTER_ENABLE="true"
-ARG CODE_BUILD_TESTER_ENDPOINT="https://code-build-tester:2000/try-build"
-ARG CODE_BUILD_TESTER_TIMEOUT="10000"
+ARG CODE_BUILD_TESTING_ENABLE="true"
+ARG CODE_BUILD_TESTING_ENDPOINT="http://code-build-testing:2000/try-build"
+ARG CODE_BUILD_TESTING_TIMEOUT="10000"
 
 
 # Set default environment variables

@@ -34,7 +34,7 @@
         "Enabled": true,
         "Endpoint": "http://game-web-wrapper:8001/notify-of-event"
     },
-    "CodeBuildTester":{
+    "CodeBuildTesting":{
         "Enabled": true,
         "Endpoint": "http://code-build-tester:2000/try-build",
         "Timeout": 10000
