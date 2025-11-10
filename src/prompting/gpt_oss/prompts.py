@@ -1,190 +1,223 @@
 import dataclasses
 import logging
-import requests
 from typing import List
 from code_overseeing.code_commands import CodeCommand
 from configuration import CodeCommandStrategies
 from core import Result
+import openai
 from prompting.gpt_oss.configuration import GptOssConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
 
 
-
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
-    '''Implementation of IGetCodeChangeCommandsPrompt using the GPT OSS API via HTTP.'''
-    _gpt_oss_configuration: GptOssConfiguration
+    '''Implementation of IGetCodeChangeCommandsPrompt using OpenAI API.'''
+    _gpt_oss_conf: GptOssConfiguration
+    _gpt_oss_client: openai.OpenAI = dataclasses.field(init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, '_gpt_oss_client', openai.OpenAI(
+            base_url=self._gpt_oss_conf.url,
+            api_key=self._gpt_oss_conf.api_key, 
+            timeout=self._gpt_oss_conf.timeout
+        ))
 
     def execute(self, context: GetCodeChangeCommandsPromptContext) -> Result[List[CodeCommand]]:
         try:
-            self._logger.debug(f"Calling OSS GPT API for code change commands with {len(context.code_file_paths)} code files")
+            self._logger.debug(f"Calling GPT OSS API for code change commands with {len(context.code_file_paths)} code files")
 
             # Prepare codebase files as text
             file_data: List[dict] = []
             for file_path in context.code_file_paths:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
                     if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
                         code_txt = _set_line_markers(code_txt)
-                    file_data.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
-                        ]
-                    })
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
             prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+
+            # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "user",
                 "content": context.strategic_change_description
             }] + file_data
 
-            payload = {
-                "model": self._gpt_oss_configuration.model,
-                "max_tokens": self._gpt_oss_configuration.max_tokens,
-                "temperature": self._gpt_oss_configuration.temperature,
-                "top_p": self._gpt_oss_configuration.top_p,
-                "instructions": prompt_preamble,
-                "input": prompt_input,
-                "api_key": self._gpt_oss_configuration.api_key
-            }
-            response = requests.post(
-                self._gpt_oss_configuration.url,
-                json=payload,
-                timeout=self._gpt_oss_configuration.timeout
+            # Create prompt
+            response = self._gpt_oss_client.responses.create(
+                model=self._gpt_oss_conf.model,
+                max_output_tokens=self._gpt_oss_conf.max_tokens,
+                temperature=self._gpt_oss_conf.temperature,
+                top_p=self._gpt_oss_conf.top_p,
+                instructions=prompt_preamble,
+                input=prompt_input
             )
-            response.raise_for_status()
-            response_json = response.json()
-            response_text = response_json.get("output_text", "")
 
-            self._logger.debug("OSS GPT API call successful, parsing response")
+            response_text = response.output_text
+
+            self._logger.debug("GPT OSS API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
-                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
             )
             self._logger.debug(f"Parsed {len(code_commands)} code commands")
+            
             return Result.ok(code_commands)
-        except Exception as e:
-            self._logger.error(f"OSS GPT API call failed: {e}")
-            return Result.err(f"OSS GPT API call failed: {e}")
-        
 
+        except Exception as e:
+            self._logger.error(f"GPT OSS API call failed: {e}")
+            return Result.err(f"GPT OSS API call failed: {e}")
+        
 
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
-    '''Implementation of IGetCodeChangeReprompt using OSS GPT API via HTTP.'''
-    _gpt_oss_configuration: GptOssConfiguration
+    '''Implementation of IGetCodeChangeReprompt using GPT OSS API.'''
+    _gpt_oss_conf: GptOssConfiguration
+    _gpt_oss_client: openai.OpenAI = dataclasses.field(init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, '_gpt_oss_client', openai.OpenAI(
+            base_url=self._gpt_oss_conf.url,
+            api_key=self._gpt_oss_conf.api_key, 
+            timeout=self._gpt_oss_conf.timeout
+        ))
 
     def execute(self, context: GetCodeChangeCommandsRepromptContext) -> Result[List[CodeCommand]]:
         try:
-            self._logger.debug(f"Calling OSS GPT API for code change reprompt with {len(context.code_file_paths)} code files")
+            self._logger.debug(f"Calling GPT OSS API for code change reprompt with {len(context.code_file_paths)} code files")
 
+            # Prepare codebase files as text
             file_data: List[dict] = []
             for file_path in context.code_file_paths:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
                     if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
                         code_txt = _set_line_markers(code_txt)
-                    file_data.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
-                        ]
-                    })
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
             prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+
+            # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "user",
                 "content": context.strategic_change_description
             }] + file_data
 
-            payload = {
-                "model": self._gpt_oss_configuration.model,
-                "max_tokens": self._gpt_oss_configuration.max_tokens,
-                "temperature": self._gpt_oss_configuration.temperature,
-                "top_p": self._gpt_oss_configuration.top_p,
-                "instructions": prompt_preamble,
-                "input": prompt_input,
-                "api_key": self._gpt_oss_configuration.api_key
-            }
-            response = requests.post(
-                self._gpt_oss_configuration.url,
-                json=payload,
-                timeout=self._gpt_oss_configuration.timeout
+            # Create prompt
+            response = self._gpt_oss_client.responses.create(
+                model=self._gpt_oss_conf.model,
+                max_output_tokens=self._gpt_oss_conf.max_tokens,
+                temperature=self._gpt_oss_conf.temperature,
+                top_p=self._gpt_oss_conf.top_p,
+                instructions=prompt_preamble,
+                input=prompt_input
             )
-            response.raise_for_status()
-            response_json = response.json()
-            response_text = response_json.get("output_text", "")
 
-            self._logger.debug("OSS GPT API call successful, parsing response")
+            response_text = response.output_text
+            self._logger.debug("GPT OSS API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
-                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE
-            )
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+                )
             self._logger.debug(f"Parsed {len(code_commands)} code commands")
             return Result.ok(code_commands)
         except Exception as e:
-            self._logger.error(f"OSS GPT API call failed: {e}")
-            return Result.err(f"OSS GPT API call failed: {e}")
+            self._logger.error(f"GPT OSS API call failed: {e}")
+            return Result.err(f"GPT OSS API call failed: {e}")
         
-
 @dataclasses.dataclass(frozen=True)
 class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
-    '''Implementation of IGetCodeFixCommandsPrompt using OSS GPT API via HTTP.'''
-    _gpt_oss_configuration: GptOssConfiguration
+    '''Implementation of IGetCodeFixCommandsPrompt using GPT OSS API.'''
+    _gpt_oss_conf: GptOssConfiguration
+    _gpt_oss_client: openai.OpenAI = dataclasses.field(init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, '_gpt_oss_client', openai.OpenAI(
+            base_url=self._gpt_oss_conf.url,
+            api_key=self._gpt_oss_conf.api_key, 
+            timeout=self._gpt_oss_conf.timeout
+        ))
 
     def execute(self, context: GetCodeFixCommandsPromptContext) -> Result[List[CodeCommand]]:
         try:
-            self._logger.debug(f"Calling OSS GPT API for code fix prompt with {len(context.code_file_paths)} code files")
+            self._logger.debug(f"Calling GPT OSS API for code change reprompt with {len(context.code_file_paths)} code files")
 
+            # Prepare codebase files as text
             file_data: List[dict] = []
             for file_path in context.code_file_paths:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
                     if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
                         code_txt = _set_line_markers(code_txt)
-                    file_data.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
-                        ]
-                    })
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
             prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
-            prompt_content = "Fix this current error:\n" + context.error_description + "\nThis is what must be implemented: \n" + context.strategic_change_description
+
+            # Prompt content
+            prompt_content = + "Fix this current error:\n" + context.error_description \
+                + "\nThis is what must be implemented: \n" + context.strategic_change_description
+                
+
+            # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "user",
                 "content": prompt_content
             }] + file_data
 
-            payload = {
-                "model": self._gpt_oss_configuration.model,
-                "max_tokens": self._gpt_oss_configuration.max_tokens,
-                "temperature": self._gpt_oss_configuration.temperature,
-                "top_p": self._gpt_oss_configuration.top_p,
-                "instructions": prompt_preamble,
-                "input": prompt_input,
-                "api_key": self._gpt_oss_configuration.api_key
-            }
-            response = requests.post(
-                self._gpt_oss_configuration.url,
-                json=payload,
-                timeout=self._gpt_oss_configuration.timeout
+            # Create prompt
+            response = self._gpt_oss_client.responses.create(
+                model=self._gpt_oss_conf.model,
+                max_output_tokens=self._gpt_oss_conf.max_tokens,
+                temperature=self._gpt_oss_conf.temperature,
+                top_p=self._gpt_oss_conf.top_p,
+                instructions=prompt_preamble,
+                input=prompt_input
             )
-            response.raise_for_status()
-            response_json = response.json()
-            response_text = response_json.get("output_text", "")
 
-            self._logger.debug("OSS GPT API call successful, parsing response")
+            response_text = response.output_text
+            self._logger.debug("GPT OSS API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
-                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE
-            )
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+                )
             self._logger.debug(f"Parsed {len(code_commands)} code commands")
             return Result.ok(code_commands)
         except Exception as e:
-            self._logger.error(f"OSS GPT API call failed: {e}")
-            return Result.err(f"OSS GPT API call failed: {e}")
+            self._logger.error(f"GPT OSS API call failed: {e}")
+            return Result.err(f"GPT OSS API call failed: {e}")
         
 @staticmethod
 def _parse_response( response_text: str, remove_line_markers: bool = False) -> Result[List[CodeCommand]]:

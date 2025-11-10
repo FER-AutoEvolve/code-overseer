@@ -8,6 +8,7 @@ from prompting import BasePromptManager
 from prompting.gpt_oss.configuration import GptOssConfiguration
 from prompting.gpt_oss.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeCommandsReprompt
 import logging
+import openai
 
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext, GetCodeFixCommandsPromptContext
 
@@ -35,15 +36,14 @@ class PromptManager(BasePromptManager):
                 "input": [{"role": "user", "content": prompt_text}],
                 "api_key": self._gpt_oss_configuration.api_key
             }
-            response = requests.post(
-                self._gpt_oss_configuration.url,
-                json=payload,
-                timeout=self._gpt_oss_configuration.timeout
+            client = openai.Client(base_url=self._gpt_oss_configuration.url, api_key=self._gpt_oss_configuration.api_key)
+            response = client.chat.completions.create(
+                model=self._gpt_oss_configuration.model,
+                messages=[
+                    {"role": "user", "content": prompt_text}
+                ]
             )
-            response.raise_for_status()
-            response_json = response.json()
-            response_text = response_json.get("output_text", "")
-            return Result.ok(response_text)
+            return Result.ok(response.choices[0].message.content)
         except Exception as e:
             return Result.err(f"Error executing prompt: {e}")
 

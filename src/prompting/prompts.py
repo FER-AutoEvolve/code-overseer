@@ -14,7 +14,8 @@ Don't generate the line markers in the code changes.
 __CODE_CHANGE_OPERATIONAL_INSTRUCTION_UPDATE_FILE_STRATEGY_TEXT__ = """
 Give me instructions how to implement the mentioned functionalities in the form of the following `UPDATE_FILE` command: 
 UPDATE_FILE [file] [[code]] 
-The UPDATE_FILE command consists of the `UPDATE_FILE` keyword, the parameter containing the file path, and the parameter containing the updated code of the entire file. Provide just those commands and nothing else. 
+The UPDATE_FILE command consists of the `UPDATE_FILE` keyword, the parameter containing the file path, and the parameter containing the updated code of the entire file. 
+**Provide just those commands and nothing else.** 
 The commands must have the [ ] chars encapsulating the parameters, including the [[ and ]] encapsulating the code through multiple lines.
 The file parameter is the path to the codebase file given in the context file attachment. 
 When adding a new file, just reference the file path and the file will be created.
