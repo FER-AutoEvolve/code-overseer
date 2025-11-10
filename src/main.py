@@ -8,10 +8,27 @@ from api_server import ApiServer
 from code_build_testing import CodeBuildTestProvider
 from core import Result, Unit
 from code_overseeing import CodeOverseer
-from configuration import Configuration
+from configuration import Configuration, PromptingProviders
 import keypoint_notification
-from prompting.openai import PromptManager
-from prompting.openai.configuration import OpenAiConfiguration
+
+from prompting import BasePromptManager, PromptingConfiguration
+
+def resolve_prompt_manager(prompting_configuration: PromptingConfiguration, logger: logging.Logger) -> Result[BasePromptManager]:
+    '''
+    Resolves the appropriate PromptManager based on the prompting configuration.
+    Parameters:
+        prompting_configuration (PromptingConfiguration): The prompting configuration.
+    Returns:
+        Result[BasePromptManager]: Result object containing the PromptManager or error message.
+    '''
+    if prompting_configuration.provider == PromptingProviders.OPENAI:
+        from prompting.openai import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.GPT_OSS:
+        from prompting.gpt_oss import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    else:
+        return Result.err(f"Unsupported prompting provider: {prompting_configuration.provider}")
 
 def main(configuration_file_path: str) -> Result[Unit]:
     '''
@@ -49,7 +66,13 @@ def main(configuration_file_path: str) -> Result[Unit]:
 
     # Setup prompt manager
     prompting_config = config.prompting_config
-    prompt_manager = PromptManager(prompting_config, logging.getLogger())
+    prompt_manager_result = resolve_prompt_manager(prompting_config, logging.getLogger())
+
+    if prompt_manager_result.is_err():
+        logging.error(f"Failed to resolve prompt manager: {prompt_manager_result.message}")
+        return Result.err(prompt_manager_result.message)
+    prompt_manager = prompt_manager_result.unwrap()
+    logging.info(f"Prompt manager resolved successfully")
 
     # Set up the code overseer
     code_overseer = CodeOverseer(config.code_overseer_config, prompt_manager, code_build_test_provider, logging.getLogger())
