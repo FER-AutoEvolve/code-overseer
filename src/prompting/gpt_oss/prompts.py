@@ -187,7 +187,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
 
             # Prompt content
-            prompt_content = + "Fix this current error:\n" + context.error_description \
+            prompt_content = "Fix this current error:\n" + context.error_description \
                 + "\nThis is what must be implemented: \n" + context.strategic_change_description
                 
 
