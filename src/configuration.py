@@ -9,7 +9,9 @@ from core import Result, Unit
 class PromptingProviders(Enum):
     ''' Enumeration of supported LLM providers.'''
     OPENAI = "openai"
-    GPT_OSS = "gpt_oss"
+    GPT_OSS_20B = "gpt_oss_20b"
+    GPT_OSS_120B = "gpt_oss_120b"
+    QWEN_CODER_30B = "qwen_coder_30b"
 
 class CodeCommandStrategies(Enum):
     ''' Enumeration of supported code command strategies.'''

@@ -4,6 +4,7 @@
         "CodeCommandStrategy": "${CODE_COMMAND_STRATEGY}",
         "Provider": "${PROMPTING_PROVIDER}",
         "ProviderConfig": {
+            "Url": "${PROMPTING_URL}",
             "ApiKey": "${PROMPTING_API_KEY}",
             "Model": "${PROMPTING_MODEL}",
             "Temperature": ${PROMPTING_TEMPERATURE},

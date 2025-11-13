@@ -24,8 +24,14 @@ def resolve_prompt_manager(prompting_configuration: PromptingConfiguration, logg
     if prompting_configuration.provider == PromptingProviders.OPENAI:
         from prompting.openai import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))
-    elif prompting_configuration.provider == PromptingProviders.GPT_OSS:
-        from prompting.gpt_oss import PromptManager
+    elif prompting_configuration.provider == PromptingProviders.GPT_OSS_20B:
+        from prompting.gpt_oss_20b import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.GPT_OSS_120B:
+        from prompting.gpt_oss_120b import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.QWEN_CODER_30B:
+        from prompting.qwen_coder_30b import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))
     else:
         return Result.err(f"Unsupported prompting provider: {prompting_configuration.provider}")

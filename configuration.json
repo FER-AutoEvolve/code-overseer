@@ -4,6 +4,7 @@
         "CodeCommandStrategy": "update_file",
         "Provider": "OpenAI",
         "ProviderConfig": {
+            "Url": "",
             "ApiKey": "",
             "Model": "gpt-4.1",
             "Temperature": 0.4,
