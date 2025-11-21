@@ -27,7 +27,12 @@ class PromptManager(BasePromptManager):
 
     def execute_raw_prompt(self, prompt_text: str) -> Result[str]:
         try:
-            client = openai.Client(base_url=self._qwen_configuration.url, api_key=self._qwen_configuration.api_key)
+            client = openai.Client(
+                base_url=self._qwen_configuration.url, 
+                api_key=self._qwen_configuration.api_key,
+                timeout=self._qwen_configuration.timeout,
+                default_headers=self._qwen_configuration.headers
+            )
             response = client.chat.completions.create(
                 model=self._qwen_configuration.model,
                 messages=[

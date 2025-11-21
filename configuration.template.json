@@ -10,7 +10,10 @@
             "Temperature": ${PROMPTING_TEMPERATURE},
             "MaxTokens": ${PROMPTING_MAX_TOKENS},
             "TopP": ${PROMPTING_TOP_P},
-            "Timeout": ${PROMPTING_TIMEOUT}
+            "Timeout": ${PROMPTING_TIMEOUT},
+            "Headers": {
+                ${PROMPTING_HEADERS}
+            }
         }
     },
     "CodeOverseer": {

@@ -2,7 +2,7 @@
     "Prompting": {
         "CodebaseDescription": "Codebase description goes here.",
         "CodeCommandStrategy": "update_file",
-        "Provider": "OpenAI",
+        "Provider": "openai",
         "ProviderConfig": {
             "Url": "",
             "ApiKey": "",
@@ -10,7 +10,10 @@
             "Temperature": 0.4,
             "MaxTokens": 3000,
             "TopP": 1.0,
-            "Timeout": 60
+            "Timeout": 60,
+            "Headers": {
+                "Authorization": "Bearer YOUR_KEY"
+            }
         }
     },
     "CodeOverseer": {

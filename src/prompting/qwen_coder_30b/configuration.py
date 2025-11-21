@@ -17,6 +17,7 @@ class QwenCoder30bConfiguration:
     temperature: float|None = 0.2
     top_p: float|None = 1.0
     timeout: int = 60  # Timeout in seconds for API requests
+    headers: dict|None = None  # Additional headers for API requests
 
     @staticmethod
     def from_dict(config: dict) -> Result['QwenCoder30bConfiguration']:
@@ -34,7 +35,8 @@ class QwenCoder30bConfiguration:
                 max_tokens=config.get("MaxTokens", 2000),
                 temperature=config.get("Temperature", None),
                 top_p=config.get("TopP", None),
-                timeout=config.get("Timeout", 60)
+                timeout=config.get("Timeout", 60),
+                headers=config.get("Headers", None)
             ))
         except ValueError as e:
             return Result.err(f"Invalid Qwen Coder settings: {e}")

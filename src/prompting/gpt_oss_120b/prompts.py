@@ -21,7 +21,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
         object.__setattr__(self, '_client', openai.OpenAI(
             base_url=self._conf.url,
             api_key=self._conf.api_key, 
-            timeout=self._conf.timeout
+            timeout=self._conf.timeout,
+            default_headers=self._conf.headers
         ))
 
     def execute(self, context: GetCodeChangeCommandsPromptContext) -> Result[List[CodeCommand]]:
@@ -96,7 +97,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
         object.__setattr__(self, '_client', openai.OpenAI(
             base_url=self._conf.url,
             api_key=self._conf.api_key, 
-            timeout=self._conf.timeout
+            timeout=self._conf.timeout,
+            default_headers=self._conf.headers
         ))
 
     def execute(self, context: GetCodeChangeCommandsRepromptContext) -> Result[List[CodeCommand]]:
@@ -167,7 +169,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
         object.__setattr__(self, '_client', openai.OpenAI(
             base_url=self._conf.url,
             api_key=self._conf.api_key, 
-            timeout=self._conf.timeout
+            timeout=self._conf.timeout,
+            default_headers=self._conf.headers
         ))
 
     def execute(self, context: GetCodeFixCommandsPromptContext) -> Result[List[CodeCommand]]:

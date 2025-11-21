@@ -27,15 +27,12 @@ class PromptManager(BasePromptManager):
         object.__setattr__(self, '_gpt_oss_configuration', GptOss120bConfiguration.from_dict(self._prompting_configuration.provider_config).unwrap())
     def execute_raw_prompt(self, prompt_text: str) -> Result[str]:
         try:
-            payload = {
-                "model": self._gpt_oss_configuration.model,
-                "max_tokens": self._gpt_oss_configuration.max_tokens,
-                "temperature": self._gpt_oss_configuration.temperature,
-                "top_p": self._gpt_oss_configuration.top_p,
-                "input": [{"role": "user", "content": prompt_text}],
-                "api_key": self._gpt_oss_configuration.api_key
-            }
-            client = openai.Client(base_url=self._gpt_oss_configuration.url, api_key=self._gpt_oss_configuration.api_key)
+            client = openai.Client(
+                base_url=self._gpt_oss_configuration.url, 
+                api_key=self._gpt_oss_configuration.api_key,
+                timeout=self._gpt_oss_configuration.timeout,
+                default_headers=self._gpt_oss_configuration.headers
+            )
             response = client.chat.completions.create(
                 model=self._gpt_oss_configuration.model,
                 messages=[
