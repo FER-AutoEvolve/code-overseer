@@ -234,8 +234,12 @@ class CodeOverseer:
                 self._logger.info(f"Received {len(code_fix_commands)} code fix commands from prompt manager")
                 self._logger.keypoint(f"Received {len(code_fix_commands)} code fix commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
                 for code_fix_command in code_fix_commands:
-                    code_fix_command.execute(self._code_overseer_configuration.code_staging_directory_path)
-                self._logger.info(f"Executed {len(code_fix_commands)} code fix commands successfully")
+                    res_code_fix_execution = code_fix_command.execute(self._code_overseer_configuration.code_staging_directory_path)
+                    if res_code_fix_execution.is_err():
+                        self._logger.error(f"Failed to execute code fix command {code_fix_command}: {res_code_fix_execution.message}")
+                        return Result.err(f"Failed to execute code fix command {code_fix_command}: {res_code_fix_execution.message}")
+                    self._logger.info(f"Successfully executed code fix command: {code_fix_command}")
+                    self._logger.info(f"Executed code fix command: {code_fix_command}")
                 self._logger.keypoint(f"Executed {len(code_fix_commands)} code fix commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
             # Stop if the build request failed
             if res_build_test.is_err():
