@@ -111,6 +111,8 @@ if __name__ == '__main__':
     # Set up logging
     # Log to console
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s.%(msecs)03d| %(message)s', datefmt='%d.%m.%yT%H:%M:%S')
+    # Remove log details for the OpenAI library
+    logging.getLogger("openai").setLevel(logging.WARNING)
 
     # Log to file if the flag is set
     if args.log_to_file:

@@ -50,7 +50,7 @@ class DeleteCodeCommand(CodeCommand):
             # check if file exists, and readlines
             # if not, leave as empty lines
             if os.path.exists(target_file_path):
-                with open(target_file_path, 'r') as file:
+                with open(target_file_path, 'r', encoding="utf-8") as file:
                     lines = file.readlines()
 
             if self.from_line_number < 1 or self.to_line_number > len(lines) or self.from_line_number > self.to_line_number:
@@ -58,7 +58,7 @@ class DeleteCodeCommand(CodeCommand):
 
             del lines[self.from_line_number - 1:self.to_line_number]
 
-            with open(target_file_path, 'w') as file:
+            with open(target_file_path, 'w', encoding="utf-8") as file:
                 file.writelines(lines)
 
             return Result.ok(Unit())
@@ -116,7 +116,7 @@ class AddCodeCommand(CodeCommand):
             # check if file exists, and readlines
             # if not, use as empty lines
             if os.path.exists(target_file_path):
-                with open(target_file_path, 'r') as file:
+                with open(target_file_path, 'r', encoding="utf-8") as file:
                     lines = file.readlines()
 
             if self.line_number is None:
@@ -126,7 +126,7 @@ class AddCodeCommand(CodeCommand):
                     return Result.err("Invalid line number")
                 lines.insert(self.line_number - 1, self.code_snippet + '\n')
 
-            with open(target_file_path, 'w') as file:
+            with open(target_file_path, 'w', encoding="utf-8") as file:
                 file.writelines(lines)
 
             return Result.ok(Unit())
@@ -177,7 +177,7 @@ class UpdateFileCommand(CodeCommand):
             if path_prefix and not self.file_path.startswith(path_prefix):
                 target_file_path = os.path.normpath(os.path.join(path_prefix, self.file_path))
             # write new content to file
-            with open(target_file_path, 'w') as file:
+            with open(target_file_path, 'w', encoding="utf-8") as file:
                 file.write(self.new_content)
             return Result.ok(Unit())
         except Exception as e:
