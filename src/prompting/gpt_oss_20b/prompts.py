@@ -8,6 +8,10 @@ import openai
 from prompting.gpt_oss_20b.configuration import GptOss20bConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
 
+__PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
+DON'T provide markdown code annotations in your response.
+ALWAYS provide the complete code for the file. DO NOT use comments or placeholders like // ...existing code or // ...existing imports. Output the full file content as it should appear after changes.
+"""
 
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
@@ -53,7 +57,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "system",
-                "content": prompt_preamble
+                "content": prompt_preamble + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
             },
             {
                 "role": "user",
@@ -93,7 +97,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, '_gpt_oss_client', openai.OpenAI(
+        object.__setattr__(self, '_client', openai.OpenAI(
             base_url=self._conf.url,
             api_key=self._conf.api_key, 
             timeout=self._conf.timeout,
