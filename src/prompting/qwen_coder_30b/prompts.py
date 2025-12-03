@@ -8,6 +8,10 @@ import openai
 from prompting.qwen_coder_30b.configuration import QwenCoder30bConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
 
+__PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
+DON'T provide markdown code annotations in your response.
+ALWAYS provide the complete code for the file. DO NOT use comments or placeholders like // ...existing code or // ...existing imports. Output the full file content as it should appear after changes.
+"""
 
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
@@ -47,12 +51,12 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction 
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
 
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "system",
-                "content": prompt_preamble
+                "content": prompt_preamble + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
             },
             {
                 "role": "user",
@@ -122,12 +126,12 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction 
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
 
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "system",
-                "content": prompt_preamble
+                "content": prompt_preamble + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
             },
             {
                 "role": "user",
@@ -193,7 +197,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
 
             # Prompt content
             prompt_content = "Fix this current error:\n" + context.error_description \
@@ -203,7 +207,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "system",
-                "content": prompt_preamble
+                "content": prompt_preamble + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
             },
             {
                 "role": "user",

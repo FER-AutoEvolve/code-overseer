@@ -51,7 +51,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction 
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
             #+ "Don't forget to include the angle brackets in the commands for the file path and the code. Don't use markdown code annotations."
 
             # The prompt input with the strategic description (user story) and the code files
@@ -127,13 +127,13 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction 
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
             #+ "Don't forget to include the angle brackets in the commands. Don't use markdown code annotations."
 
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "system",
-                "content": prompt_preamble
+                "content": prompt_preamble + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
             },
             {
                 "role": "user",
@@ -199,7 +199,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
 
             # Prompt content
             prompt_content = "Fix this current error:\n" + context.error_description \
@@ -209,7 +209,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
                 "role": "system",
-                "content": prompt_preamble
+                "content": prompt_preamble + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
             },
             {
                 "role": "user",

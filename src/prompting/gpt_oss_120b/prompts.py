@@ -10,10 +10,8 @@ from prompting.gpt_oss_20b.configuration import GptOss20bConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
-IMPORTANT:
-* ALL THE CODE YOU PROVIDE MUST COMPILE AND WORK AS INTENDED.
-* DO NOT use comments to substitute existing code - PROVIDE ALL THE CODE FOR THE FILE.
-* DO NOT use markdown code annotations (```).
+DON'T provide markdown code annotations in your response.
+ALWAYS provide the complete code for the file. DO NOT use comments or placeholders like // ...existing code or // ...existing imports. Output the full file content as it should appear after changes.
 """
 
 @dataclasses.dataclass(frozen=True)
@@ -54,9 +52,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                     )
             # The prompt preamble for the prompt instruction
             # Contains the codebase description and the operational instructions on how to provide the commands
-            prompt_preamble: str = context.codebase_description + "\n" \
-                + context.code_change_command_operational_instruction + "\n" \
-                + __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction + "\n"
 
             # The prompt input with the strategic description (user story) and the code files
             prompt_input = [{
