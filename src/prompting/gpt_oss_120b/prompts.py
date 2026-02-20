@@ -6,7 +6,6 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.gpt_oss_120b.configuration import GptOss120bConfiguration
-from prompting.gpt_oss_20b.configuration import GptOss20bConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
@@ -14,10 +13,12 @@ DON'T provide markdown code annotations in your response.
 ALWAYS provide the complete code for the file. DO NOT use comments or placeholders like // ...existing code or // ...existing imports. Output the full file content as it should appear after changes.
 """
 
+__THINKING_MODE__: dict = {"effort": "high"}
+
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
     '''Implementation of IGetCodeChangeCommandsPrompt using GPT OSS 120B.'''
-    _conf: GptOss20bConfiguration
+    _conf: GptOss120bConfiguration
     _client: openai.OpenAI = dataclasses.field(init=False)
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
@@ -59,7 +60,6 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 "role": "system",
                 "content": prompt_preamble
             },
-            {"role": "system", "content": "Reasoning: high"},
             {
                 "role": "user",
                 "content": context.strategic_change_description
@@ -71,6 +71,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 max_output_tokens=self._conf.max_tokens,
                 temperature=self._conf.temperature,
                 top_p=self._conf.top_p,
+                reasoning=__THINKING_MODE__,
                 input=prompt_input
             )
 
@@ -148,6 +149,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 max_output_tokens=self._conf.max_tokens,
                 temperature=self._conf.temperature,
                 top_p=self._conf.top_p,
+                reasoning=__THINKING_MODE__,
                 input=prompt_input
             )
 
@@ -221,11 +223,12 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             }] + file_data
 
             # Create prompt
-            response = self._gpt_oss_client.responses.create(
+            response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
                 temperature=self._conf.temperature,
                 top_p=self._conf.top_p,
+                reasoning=__THINKING_MODE__,
                 #instructions=prompt_preamble,
                 input=prompt_input
             )
