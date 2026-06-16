@@ -33,6 +33,18 @@ def resolve_prompt_manager(prompting_configuration: PromptingConfiguration, logg
     elif prompting_configuration.provider == PromptingProviders.QWEN_CODER_30B:
         from prompting.qwen_coder_30b import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.GEMMA_4_31B_QAT:
+        from prompting.gemma_4_31b_qat import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.GEMMA_4_26B_A4B_QAT:
+        from prompting.gemma_4_26b_a4b_qat import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.QWEN_3_6_35B_A3B:
+        from prompting.qwen_3_6_35b_a3b import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.QWEN_3_6_27B:
+        from prompting.qwen_3_6_27B import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
     else:
         return Result.err(f"Unsupported prompting provider: {prompting_configuration.provider}")
 

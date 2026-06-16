@@ -12,6 +12,10 @@ class PromptingProviders(Enum):
     GPT_OSS_20B = "gpt_oss_20b"
     GPT_OSS_120B = "gpt_oss_120b"
     QWEN_CODER_30B = "qwen_coder_30b"
+    GEMMA_4_31B_QAT = "gemma_4_31b_qat"
+    GEMMA_4_26B_A4B_QAT = "gemma_4_26b_a4b_qat"
+    QWEN_3_6_35B_A3B = "qwen_3_6_35b_a3b"
+    QWEN_3_6_27B = "qwen_3_6_27b"
 
 class CodeCommandStrategies(Enum):
     ''' Enumeration of supported code command strategies.'''
