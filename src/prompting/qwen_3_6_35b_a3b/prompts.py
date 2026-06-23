@@ -16,6 +16,44 @@ ALWAYS provide the complete code for the file. DO NOT use comments or placeholde
 """
 
 
+def _extract_response_text(response: object) -> Result[str]:
+    output_text = getattr(response, "output_text", None)
+    if isinstance(output_text, str) and output_text.strip():
+        return Result.ok(output_text)
+
+    text_chunks: List[str] = []
+    for item in getattr(response, "output", []) or []:
+        for content_item in getattr(item, "content", []) or []:
+            text_value = getattr(content_item, "text", None)
+            if isinstance(text_value, str) and text_value:
+                text_chunks.append(text_value)
+                continue
+
+            nested_value = getattr(text_value, "value", None)
+            if isinstance(nested_value, str) and nested_value:
+                text_chunks.append(nested_value)
+
+    if text_chunks:
+        return Result.ok("\n".join(text_chunks))
+
+    choices = getattr(response, "choices", None)
+    if choices:
+        message = getattr(choices[0], "message", None)
+        message_content = getattr(message, "content", None)
+        if isinstance(message_content, str) and message_content.strip():
+            return Result.ok(message_content)
+        if isinstance(message_content, list):
+            message_text_chunks: List[str] = []
+            for item in message_content:
+                item_text = getattr(item, "text", None)
+                if isinstance(item_text, str) and item_text:
+                    message_text_chunks.append(item_text)
+            if message_text_chunks:
+                return Result.ok("\n".join(message_text_chunks))
+
+    return Result.err("Response did not contain any readable text content")
+
+
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
     '''Implementation of IGetCodeChangeCommandsPrompt using Qwen 3.6 35B A3B.'''
@@ -69,7 +107,11 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 input=prompt_input
             )
 
-            response_text = response.output_text
+            response_text_result = _extract_response_text(response)
+            if response_text_result.is_err():
+                return Result.err(response_text_result.message)
+
+            response_text = response_text_result.unwrap()
             self._logger.debug("Qwen 3.6 35B A3B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -136,7 +178,11 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 input=prompt_input
             )
 
-            response_text = response.output_text
+            response_text_result = _extract_response_text(response)
+            if response_text_result.is_err():
+                return Result.err(response_text_result.message)
+
+            response_text = response_text_result.unwrap()
             self._logger.debug("Qwen 3.6 35B A3B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -203,7 +249,11 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 input=prompt_input
             )
 
-            response_text = response.output_text
+            response_text_result = _extract_response_text(response)
+            if response_text_result.is_err():
+                return Result.err(response_text_result.message)
+
+            response_text = response_text_result.unwrap()
             self._logger.debug("Qwen 3.6 35B A3B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
