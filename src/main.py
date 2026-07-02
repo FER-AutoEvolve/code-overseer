@@ -30,6 +30,9 @@ def resolve_prompt_manager(prompting_configuration: PromptingConfiguration, logg
     elif prompting_configuration.provider == PromptingProviders.GPT_OSS_120B:
         from prompting.gpt_oss_120b import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.NEMOTRON_3_SUPER:
+        from prompting.nemotron_3_super import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
     elif prompting_configuration.provider == PromptingProviders.QWEN_CODER_30B:
         from prompting.qwen_coder_30b import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))

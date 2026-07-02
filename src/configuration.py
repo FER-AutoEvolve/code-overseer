@@ -11,6 +11,7 @@ class PromptingProviders(Enum):
     OPENAI = "openai"
     GPT_OSS_20B = "gpt_oss_20b"
     GPT_OSS_120B = "gpt_oss_120b"
+    NEMOTRON_3_SUPER = "nemotron_3_super"
     QWEN_CODER_30B = "qwen_coder_30b"
     GEMMA_4_31B_QAT = "gemma_4_31b_qat"
     GEMMA_4_26B_A4B_QAT = "gemma_4_26b_a4b_qat"
