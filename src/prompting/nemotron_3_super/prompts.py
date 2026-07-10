@@ -13,8 +13,39 @@ from prompting.nemotron_3_super.configuration import Nemotron3SuperConfiguration
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
 DON'T provide markdown code annotations in your response.
 ALWAYS provide the complete code for the file. DO NOT use comments or placeholders like // ...existing code or // ...existing imports. Output the full file content as it should appear after changes.
+This is a simple example of the expected output format:
+```
+UPDATE_FILE [./codebase/Commons.ts] [[
+    /*
+    * Function to add two numbers
+    */
+    export function add(a: number, b: number): number {
+        return a + b;
+    }
+]]
+UPDATE_FILE [./codebase/Core.ts] [[
+    /*
+    * Function to map an array of items to a new array using a provided function
+    */
+    export function map<T, U>(arr: T[], fn: (item: T) => U): U[] {
+        const result: U[] = [];
+        for (const item of arr) {
+            result.push(fn(item));
+        }
+        return result;
+    }
+]]
+...
+```
 """
 
+def write_response_to_file(response_text: str, file_path: str) -> Result[None]:
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(response_text)
+        return Result.ok(None)
+    except Exception as e:
+        return Result.err(f"Error writing response to file: {e}")
 
 def _extract_response_text(response: object) -> Result[str]:
     output_text = getattr(response, "output_text", None)
@@ -112,6 +143,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
+            write_result = write_response_to_file(response_text, "./initial_prompt_response.txt")
             self._logger.debug("Nemotron 3 Super API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -183,6 +215,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
+            import datetime
+            write_result = write_response_to_file(response_text, f"./reprompt_response_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             self._logger.debug("Nemotron 3 Super API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -254,6 +288,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
+            import datetime
+            write_result = write_response_to_file(response_text, f"./code_fix_response_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             self._logger.debug("Nemotron 3 Super API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
