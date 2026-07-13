@@ -216,7 +216,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
 
             response_text = response_text_result.unwrap()
             import datetime
-            write_result = write_response_to_file(response_text, f"./reprompt_response_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
+            write_result = write_response_to_file(response_text, f"./reprompt_response_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             self._logger.debug("Nemotron 3 Super API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -289,7 +289,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
 
             response_text = response_text_result.unwrap()
             import datetime
-            write_result = write_response_to_file(response_text, f"./code_fix_response_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
+            write_result = write_response_to_file(response_text, f"./code_fix_response_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             self._logger.debug("Nemotron 3 Super API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
