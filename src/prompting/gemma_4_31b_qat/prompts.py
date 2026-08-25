@@ -8,7 +8,7 @@ from core import Result
 import openai
 from prompting.gemma_4_31b_qat.configuration import Gemma431bQatConfiguration
 from prompting.gpt_oss_20b.prompts import _parse_response, _set_line_markers
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
 DON'T provide markdown code annotations in your response.
@@ -108,6 +108,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 input=prompt_input
             )
 
+            log_token_usage(self._logger, response, "Gemma 4 31B QAT")
+
             response_text_result = _extract_response_text(response)
             if response_text_result.is_err():
                 return Result.err(response_text_result.message)
@@ -179,6 +181,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 input=prompt_input
             )
 
+            log_token_usage(self._logger, response, "Gemma 4 31B QAT")
+
             response_text_result = _extract_response_text(response)
             if response_text_result.is_err():
                 return Result.err(response_text_result.message)
@@ -249,6 +253,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 top_p=self._conf.top_p,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "Gemma 4 31B QAT")
 
             response_text_result = _extract_response_text(response)
             if response_text_result.is_err():

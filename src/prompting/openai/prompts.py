@@ -6,7 +6,7 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.openai.configuration import OpenAiConfiguration
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
 
 
 @dataclasses.dataclass(frozen=True)
@@ -62,6 +62,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 instructions=prompt_preamble,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "OpenAI")
 
             response_text = response.output_text
 
@@ -132,6 +134,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 instructions=prompt_preamble,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "OpenAI")
 
             response_text = response.output_text
             self._logger.debug("OpenAI API call successful, parsing response")
@@ -204,6 +208,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 input=prompt_input
             )
 
+            log_token_usage(self._logger, response, "OpenAI")
+
             response_text = response.output_text
             self._logger.debug("OpenAI API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
@@ -215,7 +221,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
         except Exception as e:
             self._logger.error(f"OpenAI API call failed: {e}")
             return Result.err(f"OpenAI API call failed: {e}")
-        
+
+
 @staticmethod
 def _parse_response( response_text: str, remove_line_markers: bool = False) -> Result[List[CodeCommand]]:
     '''

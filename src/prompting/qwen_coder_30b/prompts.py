@@ -6,7 +6,7 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.qwen_coder_30b.configuration import QwenCoder30bConfiguration
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
 DON'T provide markdown code annotations in your response.
@@ -71,6 +71,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 top_p=self._conf.top_p,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "Qwen Coder 30B")
 
             response_text = response.output_text
 
@@ -146,6 +148,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 top_p=self._conf.top_p,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "Qwen Coder 30B")
 
             response_text = response.output_text
             self._logger.debug("Qwen Coder 30B API call successful, parsing response")
@@ -223,6 +227,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 input=prompt_input
             )
 
+            log_token_usage(self._logger, response, "Qwen Coder 30B")
+
             response_text = response.output_text
             self._logger.debug("Qwen Coder 30B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
@@ -234,7 +240,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
         except Exception as e:
             self._logger.error(f"Qwen Coder 30B API call failed: {e}")
             return Result.err(f"Qwen Coder 30B API call failed: {e}")
-        
+
+
 @staticmethod
 def _parse_response( response_text: str, remove_line_markers: bool = False) -> Result[List[CodeCommand]]:
     '''

@@ -27,6 +27,7 @@ DONE
 
 from abc import abstractmethod
 import dataclasses
+import logging
 from typing import List
 
 from code_overseeing.code_commands import CodeCommand
@@ -150,3 +151,20 @@ class IGetCodeFixCommandsPrompt:
             Result[List[CodeCommand]]: The result of the reprompt execution.
         '''
         pass
+
+
+def log_token_usage(logger: logging.Logger, response: object, provider_name: str) -> None:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        logger.debug(f"{provider_name} token usage unavailable")
+        return
+
+    input_tokens = getattr(usage, "input_tokens", None)
+    output_tokens = getattr(usage, "output_tokens", None)
+    total_tokens = getattr(usage, "total_tokens", None)
+    input_details = getattr(usage, "input_tokens_details", None)
+    cached_tokens = getattr(input_details, "cached_tokens", None) if input_details is not None else None
+
+    logger.info(
+        f"{provider_name} token usage: input={input_tokens}, output={output_tokens}, total={total_tokens}, cached_input={cached_tokens}"
+    )

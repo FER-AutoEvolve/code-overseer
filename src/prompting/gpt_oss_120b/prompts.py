@@ -6,7 +6,7 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.gpt_oss_120b.configuration import GptOss120bConfiguration
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
 DON'T provide markdown code annotations in your response.
@@ -74,6 +74,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 reasoning=__THINKING_MODE__,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "GPT OSS 120B")
 
             response_text = response.output_text
 
@@ -152,6 +154,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 reasoning=__THINKING_MODE__,
                 input=prompt_input
             )
+
+            log_token_usage(self._logger, response, "GPT OSS 120B")
 
             response_text = response.output_text
             self._logger.debug("GPT OSS 120B API call successful, parsing response")
@@ -233,6 +237,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 input=prompt_input
             )
 
+            log_token_usage(self._logger, response, "GPT OSS 120B")
+
             response_text = response.output_text
             self._logger.debug("GPT OSS 120B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
@@ -244,7 +250,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
         except Exception as e:
             self._logger.error(f"GPT OSS 120B API call failed: {e}")
             return Result.err(f"GPT OSS 120B API call failed: {e}")
-        
+
+
 @staticmethod
 def _parse_response( response_text: str, remove_line_markers: bool = False) -> Result[List[CodeCommand]]:
     '''
