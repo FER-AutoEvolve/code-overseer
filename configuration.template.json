@@ -35,6 +35,11 @@
         "Enabled": ${KEYPOINT_NOTIFICATION_ENABLED},
         "Endpoint": "${KEYPOINT_NOTIFICATION_ENDPOINT}"
     },
+    "ExperimentNotification": {
+        "Enabled": ${EXPERIMENT_NOTIFICATION_ENABLED},
+        "Endpoint": "${EXPERIMENT_NOTIFICATION_ENDPOINT}",
+        "ComponentName": "${EXPERIMENT_NOTIFICATION_COMPONENT_NAME}"
+    },
     "CodeBuildTesting":{
         "Enabled": ${CODE_BUILD_TESTING_ENABLE},
         "Endpoint": "${CODE_BUILD_TESTING_ENDPOINT}",

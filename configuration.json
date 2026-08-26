@@ -35,8 +35,13 @@
         "Port": 3000
     },
     "KeypointNotification": {
-        "Enabled": true,
+        "Enabled": false,
         "Endpoint": "http://game-web-wrapper:8001/notify-of-event"
+    },
+    "ExperimentNotification": {
+        "Enabled": true,
+        "Endpoint": "http://experiment-director:8002/track-event",
+        "ComponentName": "CODE_OVERSEER"
     },
     "CodeBuildTesting":{
         "Enabled": true,

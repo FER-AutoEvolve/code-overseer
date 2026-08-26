@@ -9,6 +9,7 @@ from code_build_testing import CodeBuildTestProvider
 from core import Result, Unit
 from code_overseeing import CodeOverseer
 from configuration import Configuration, PromptingProviders
+import experiment_notification
 import keypoint_notification
 
 from prompting import BasePromptManager, PromptingConfiguration
@@ -82,6 +83,13 @@ def main(configuration_file_path: str) -> Result[Unit]:
     else:
         logging.info(f"No keypoint notification configuration found, skipping keypoint notification setup")
 
+    # Setup experiment notification
+    if config.experiment_notification_config is not None:
+        experiment_notification.configure_experiment_notifier(config.experiment_notification_config)
+        logging.info(f"Experiment notification configured successfully")
+    else:
+        logging.info(f"No experiment notification configuration found, skipping experiment notification setup")
+
     # Setup code build testing if present and enabled
     code_build_test_provider: CodeBuildTestProvider|None = CodeBuildTestProvider(config.code_build_testing_config) if config.code_build_testing_config and config.code_build_testing_config.is_enabled else None
 
@@ -104,16 +112,21 @@ def main(configuration_file_path: str) -> Result[Unit]:
     res_server_start = server.start_server()
     if res_server_start.is_err():
         logging.error(f"Error starting the FastAPI server: {res_server_start.message}")
+        logging.getLogger().experiment(f"Error starting the FastAPI server: {res_server_start.message}", event_type=experiment_notification.ExperimentEventTypes.FAILURE)
         return Result.err(res_server_start.message)
     logging.info(f"FastAPI server started successfully")
-    
+
+    logging.getLogger().experiment("Component started successfully", event_type=experiment_notification.ExperimentEventTypes.INFO)
+
     # block the current thread if starting the server was successful
     res_server_wait = server.wait_for_server_to_stop()
     if res_server_wait.is_err():
         logging.error(f"Error while running FastAPI server: {res_server_wait.message}")
+        logging.getLogger().experiment(f"Error while running FastAPI server: {res_server_wait.message}", event_type=experiment_notification.ExperimentEventTypes.FAILURE)
         return Result.err(res_server_wait.message)
 
     logging.info(f"Program ended successfully")
+    logging.getLogger().experiment("Component stopped successfully", event_type=experiment_notification.ExperimentEventTypes.INFO)
     return Result.ok(Unit())
 
 if __name__ == '__main__':

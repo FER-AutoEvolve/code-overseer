@@ -33,6 +33,31 @@ The code overseer component repository with dockerization. Accepts a strategic c
 
 4. Reset the codebase directory by running `python ./reset_codebase.py`.
 
+## Experiment notifications
+You can configure an experiment-only notification channel that sends data to an external tracker component.
+
+Configuration section:
+```
+"ExperimentNotification": {
+    "Enabled": true,
+    "Endpoint": "http://experiment-director:8002/track-event",
+    "ComponentName": "Code Overseer"
+}
+```
+
+Usage from code:
+```
+from experiment_notification import ExperimentEventTypes
+
+logger.experiment(
+    "Build iteration finished",
+    event_type=ExperimentEventTypes.SUCCESS
+)
+```
+
+Payload contains component name, event timestamp, event message, and event type (`Failure` / `Success` / `Info`).
+This pathway is exclusive and does not write to ordinary logging handlers (console/file).
+
 ## Run in docker
 > This container is intended to be run as part of a docker compose and not specifically as a standalone container
 

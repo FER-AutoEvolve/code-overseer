@@ -82,12 +82,46 @@ class KeypointNotificationConfiguration:
             return Result.err(f"Invalid keypoint notification configuration: {e}")
 
 @dataclasses.dataclass(frozen=True)
+class ExperimentNotificationConfiguration:
+    ''' Configuration for the experiment notification system.'''
+    enabled: bool
+    endpoint: str
+    component_name: str
+
+    @staticmethod
+    def from_dict(config: dict) -> Result['ExperimentNotificationConfiguration']:
+        '''
+        Creates an ExperimentNotificationConfiguration object from a dictionary.
+        Args:
+            config (dict): Dictionary containing configuration data.
+        Returns:
+            Result[ExperimentNotificationConfiguration]: Result containing
+            the ExperimentNotificationConfiguration object or an error
+        '''
+        try:
+            enabled = config.get("Enabled", True)
+            endpoint = config.get("Endpoint", "")
+            component_name = config.get("ComponentName", "")
+            if not endpoint:
+                return Result.err("ExperimentNotification configuration requires 'Endpoint' to be set.")
+            if not component_name:
+                return Result.err("ExperimentNotification configuration requires 'ComponentName' to be set.")
+            return Result.ok(ExperimentNotificationConfiguration(
+                enabled=enabled,
+                endpoint=endpoint,
+                component_name=component_name
+            ))
+        except ValueError as e:
+            return Result.err(f"Invalid experiment notification configuration: {e}")
+
+@dataclasses.dataclass(frozen=True)
 class Configuration:
     ''' Configuration for the entire application.'''
     prompting_config: PromptingConfiguration
     fast_api_config: FastApiConfiguration
     code_overseer_config: CodeOverseerConfiguration
     keypoint_notification_config: KeypointNotificationConfiguration | None = dataclasses.field(default=None)
+    experiment_notification_config: ExperimentNotificationConfiguration | None = dataclasses.field(default=None)
     code_build_testing_config: CodeBuildTestingConfiguration | None = dataclasses.field(default=None)
 
     @staticmethod
@@ -104,6 +138,7 @@ class Configuration:
             res_fast_api_config = FastApiConfiguration.from_dict(config.get("FastApi", {}))
             res_code_overseer_config = CodeOverseerConfiguration.from_dict(config.get("CodeOverseer", {}))
             res_keypoint_notification_config = KeypointNotificationConfiguration.from_dict(config.get("KeypointNotification")) if config.get("KeypointNotification", None) else Result.ok(Unit())
+            res_experiment_notification_config = ExperimentNotificationConfiguration.from_dict(config.get("ExperimentNotification")) if config.get("ExperimentNotification", None) else Result.ok(Unit())
             res_code_build_testing_config = CodeBuildTestingConfiguration.from_dict(config.get("CodeBuildTesting")) if config.get("CodeBuildTesting", None) else Result.ok(Unit())
 
             if res_fast_api_config.is_err():
@@ -112,6 +147,8 @@ class Configuration:
                 return Result.err(res_code_overseer_config.message)
             if res_keypoint_notification_config.is_err():
                 return Result.err(res_keypoint_notification_config.message)
+            if res_experiment_notification_config.is_err():
+                return Result.err(res_experiment_notification_config.message)
             if res_prompting_config.is_err():
                 return Result.err(res_prompting_config.message)
             if res_code_build_testing_config.is_err():
@@ -122,6 +159,7 @@ class Configuration:
                 code_overseer_config=res_code_overseer_config.value,
                 fast_api_config=res_fast_api_config.value,
                 keypoint_notification_config=res_keypoint_notification_config.value if res_keypoint_notification_config.value != Unit() else None,
+                experiment_notification_config=res_experiment_notification_config.value if res_experiment_notification_config.value != Unit() else None,
                 code_build_testing_config=res_code_build_testing_config.value if res_code_build_testing_config.value != Unit() else None
             ))
         
