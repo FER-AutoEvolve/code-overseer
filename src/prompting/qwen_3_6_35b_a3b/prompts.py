@@ -7,7 +7,7 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.gpt_oss_20b.prompts import _parse_response, _set_line_markers
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_prompt_event, log_prompt_response_event, log_token_usage
 from prompting.qwen_3_6_35b_a3b.configuration import Qwen3635bA3bConfiguration
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
@@ -99,6 +99,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 "content": context.strategic_change_description
             }] + file_data
 
+            log_prompt_event(self._logger, "INIT_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -114,6 +115,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
+            log_prompt_response_event(self._logger, "INIT_PROMPT_RESPONSE", response, response_text)
             self._logger.debug("Qwen 3.6 35B A3B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -172,6 +174,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 "content": context.strategic_change_description
             }] + file_data
 
+            log_prompt_event(self._logger, "RE_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -187,6 +190,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
+            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text)
             self._logger.debug("Qwen 3.6 35B A3B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -245,6 +249,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 "content": prompt_content
             }] + file_data
 
+            log_prompt_event(self._logger, "CODEFIX_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -260,6 +265,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
+            log_prompt_response_event(self._logger, "CODEFIX_PROMPT_RESPONSE", response, response_text)
             self._logger.debug("Qwen 3.6 35B A3B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,

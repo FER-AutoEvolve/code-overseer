@@ -6,7 +6,7 @@ from configuration import CodeCommandStrategies
 from core import Result
 import openai
 from prompting.gpt_oss_120b.configuration import GptOss120bConfiguration
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_prompt_event, log_prompt_response_event, log_token_usage
 
 __PROVIDER_SPECIFIC_PROMPTING_INSTRUCTIONS__: str = """
 DON'T provide markdown code annotations in your response.
@@ -66,6 +66,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             }] + file_data
 
             # Create prompt
+            log_prompt_event(self._logger, "INIT_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -78,6 +79,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             log_token_usage(self._logger, response, "GPT OSS 120B")
 
             response_text = response.output_text
+            log_prompt_response_event(self._logger, "INIT_PROMPT_RESPONSE", response, response_text)
 
             self._logger.debug("GPT OSS 120B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
@@ -146,6 +148,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
             }] + file_data
 
             # Create prompt
+            log_prompt_event(self._logger, "RE_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -158,6 +161,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
             log_token_usage(self._logger, response, "GPT OSS 120B")
 
             response_text = response.output_text
+            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text)
             self._logger.debug("GPT OSS 120B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
@@ -227,6 +231,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             }] + file_data
 
             # Create prompt
+            log_prompt_event(self._logger, "CODEFIX_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -240,6 +245,7 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             log_token_usage(self._logger, response, "GPT OSS 120B")
 
             response_text = response.output_text
+            log_prompt_response_event(self._logger, "CODEFIX_PROMPT_RESPONSE", response, response_text)
             self._logger.debug("GPT OSS 120B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,

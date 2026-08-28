@@ -71,6 +71,13 @@ def main(configuration_file_path: str) -> Result[Unit]:
         config_res = Configuration.from_dict(config_json)
         if config_res.is_err():
             logging.error(f"Failed to load configuration")
+            logging.getLogger().experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": "Failed to load configuration"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err("Failed to load configuration")
         config = config_res.unwrap()
 
@@ -99,6 +106,13 @@ def main(configuration_file_path: str) -> Result[Unit]:
 
     if prompt_manager_result.is_err():
         logging.error(f"Failed to resolve prompt manager: {prompt_manager_result.message}")
+        logging.getLogger().experiment(
+            experiment_notification.format_experiment_event_message(
+                "COMPLETED",
+                {"status": "FAILURE", "message": f"Failed to resolve prompt manager: {prompt_manager_result.message}"},
+            ),
+            event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+        )
         return Result.err(prompt_manager_result.message)
     prompt_manager = prompt_manager_result.unwrap()
     logging.info(f"Prompt manager resolved successfully")
@@ -108,25 +122,49 @@ def main(configuration_file_path: str) -> Result[Unit]:
 
     # start the Fast API server
     server = ApiServer(config.fast_api_config, code_overseer, logging.getLogger())
+    logging.getLogger().experiment(
+        experiment_notification.format_experiment_event_message("COMPONENT_START"),
+        event_type=experiment_notification.ExperimentEventTypes.INFO,
+    )
     # block the current thread if starting the server was successful
     res_server_start = server.start_server()
     if res_server_start.is_err():
         logging.error(f"Error starting the FastAPI server: {res_server_start.message}")
-        logging.getLogger().experiment(f"Error starting the FastAPI server: {res_server_start.message}", event_type=experiment_notification.ExperimentEventTypes.FAILURE)
+        logging.getLogger().experiment(
+            experiment_notification.format_experiment_event_message(
+                "COMPLETED",
+                {"status": "FAILURE", "message": f"Error starting the FastAPI server: {res_server_start.message}"},
+            ),
+            event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+        )
         return Result.err(res_server_start.message)
     logging.info(f"FastAPI server started successfully")
-
-    logging.getLogger().experiment("Component started successfully", event_type=experiment_notification.ExperimentEventTypes.INFO)
 
     # block the current thread if starting the server was successful
     res_server_wait = server.wait_for_server_to_stop()
     if res_server_wait.is_err():
         logging.error(f"Error while running FastAPI server: {res_server_wait.message}")
-        logging.getLogger().experiment(f"Error while running FastAPI server: {res_server_wait.message}", event_type=experiment_notification.ExperimentEventTypes.FAILURE)
+        logging.getLogger().experiment(
+            experiment_notification.format_experiment_event_message(
+                "COMPLETED",
+                {"status": "FAILURE", "message": f"Error while running FastAPI server: {res_server_wait.message}"},
+            ),
+            event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+        )
         return Result.err(res_server_wait.message)
 
     logging.info(f"Program ended successfully")
-    logging.getLogger().experiment("Component stopped successfully", event_type=experiment_notification.ExperimentEventTypes.INFO)
+    logging.getLogger().experiment(
+        experiment_notification.format_experiment_event_message("COMPONENT_STOP"),
+        event_type=experiment_notification.ExperimentEventTypes.INFO,
+    )
+    logging.getLogger().experiment(
+        experiment_notification.format_experiment_event_message(
+            "COMPLETED",
+            {"status": "SUCCESS", "message": "Program ended successfully"},
+        ),
+        event_type=experiment_notification.ExperimentEventTypes.SUCCESS,
+    )
     return Result.ok(Unit())
 
 if __name__ == '__main__':

@@ -28,11 +28,12 @@ DONE
 from abc import abstractmethod
 import dataclasses
 import logging
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from code_overseeing.code_commands import CodeCommand
 from configuration import CodeCommandStrategies
 from core import Result
+import experiment_notification
 
 
 @dataclasses.dataclass(frozen=True)
@@ -168,3 +169,57 @@ def log_token_usage(logger: logging.Logger, response: object, provider_name: str
     logger.info(
         f"{provider_name} token usage: input={input_tokens}, output={output_tokens}, total={total_tokens}, cached_input={cached_tokens}"
     )
+
+
+def extract_token_usage(response: object) -> Optional[Dict[str, Any]]:
+    '''
+    Extracts a minimal token usage payload from provider responses.
+    '''
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+
+    input_tokens = getattr(usage, "input_tokens", None)
+    output_tokens = getattr(usage, "output_tokens", None)
+    total_tokens = getattr(usage, "total_tokens", None)
+    input_details = getattr(usage, "input_tokens_details", None)
+    cached_tokens = getattr(input_details, "cached_tokens", None) if input_details is not None else None
+
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "cached_input_tokens": cached_tokens,
+    }
+
+
+def log_prompt_event(
+    logger: logging.Logger,
+    event_name: str,
+    payload: Optional[Dict[str, Any]] = None,
+    event_type: experiment_notification.ExperimentEventTypes = experiment_notification.ExperimentEventTypes.INFO,
+) -> None:
+    '''
+    Emits a standardized experiment event for prompt lifecycle messages.
+    '''
+    logger.experiment(
+        experiment_notification.format_experiment_event_message(event_name, payload),
+        event_type=event_type,
+    )
+
+
+def log_prompt_response_event(
+    logger: logging.Logger,
+    event_name: str,
+    response: object,
+    response_text: str,
+    event_type: experiment_notification.ExperimentEventTypes = experiment_notification.ExperimentEventTypes.INFO,
+) -> None:
+    '''
+    Emits a prompt response event payload containing token usage and raw response text.
+    '''
+    payload = {
+        "tokens": extract_token_usage(response),
+        "response_text": response_text,
+    }
+    log_prompt_event(logger, event_name, payload=payload, event_type=event_type)

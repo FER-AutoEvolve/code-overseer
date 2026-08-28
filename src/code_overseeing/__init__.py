@@ -9,6 +9,7 @@ from core import Result, Unit
 import os
 import gitmatch
 import keypoint_notification
+import experiment_notification
 from prompting.openai import BasePromptManager
 from prompting.prompts import GetCodeChangeCommandsPromptContext
 from code_overseeing.code_commands import CodeCommand, CommandTypes
@@ -125,17 +126,42 @@ class CodeOverseer:
         '''
         self._logger.info(f"Handling code change: {change_strategic_description}")
         self._logger.keypoint(f"Received code change task: {change_strategic_description}", event_type=keypoint_notification.EventTypes.INFO)
+        self._logger.experiment(
+            experiment_notification.format_experiment_event_message(
+                "REQ_TO_OVERSEER_RECEIVED",
+                {"payload": {"change_strategic_description": change_strategic_description}},
+            ),
+            event_type=experiment_notification.ExperimentEventTypes.INFO,
+        )
 
         self._logger.keypoint(f"Preparing staging area for code changes...", event_type=keypoint_notification.EventTypes.INFO)
         # Copy current codebase to staging
         res_copy = self._copy_codebase_to_staging()
         if res_copy.is_err():
+            self._logger.experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": f"Failed to copy codebase to staging: {res_copy.message}"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err(f"Failed to copy codebase to staging: {res_copy.message}")
         self._logger.info("Successfully copied codebase to staging")
+        self._logger.experiment(
+            experiment_notification.format_experiment_event_message("CODE_IN_STAGING"),
+            event_type=experiment_notification.ExperimentEventTypes.INFO,
+        )
 
         # List code file paths in staging
         res_codebase_file_paths = self.list_staging_file_paths()
         if res_codebase_file_paths.is_err():
+            self._logger.experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": f"Failed to list code file paths: {res_codebase_file_paths.message}"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
         codebase_file_paths = res_codebase_file_paths.unwrap()
 
@@ -150,11 +176,25 @@ class CodeOverseer:
         if res_code_change_commands.is_err():
             self._logger.error(f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}")
             self._logger.keypoint(f"Failed to get code change commands from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
+            self._logger.experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err(f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}")
         code_change_commands = res_code_change_commands.unwrap()
         if len(code_change_commands) == 0:
             self._logger.error("Prompt manager returned zero code change commands")
             self._logger.keypoint("Prompt returned zero code change commands!", event_type=keypoint_notification.EventTypes.FAILURE)
+            self._logger.experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": "Prompt manager returned zero code change commands"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err("Prompt manager returned zero code change commands")
         self._logger.info(f"Received {len(code_change_commands)} code change commands from prompt manager")
         self._logger.keypoint(f"Received {len(code_change_commands)} code change commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.SUCCESS)
@@ -165,6 +205,13 @@ class CodeOverseer:
             res_execution = command.execute(self._code_overseer_configuration.code_staging_directory_path)
             if res_execution.is_err():
                 self._logger.error(f"Failed to execute command {command}: {res_execution.message}")
+                self._logger.experiment(
+                    experiment_notification.format_experiment_event_message(
+                        "COMPLETED",
+                        {"status": "FAILURE", "message": f"Failed to execute command {command}: {res_execution.message}"},
+                    ),
+                    event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                )
                 return Result.err(f"Failed to execute command {command}: {res_execution.message}")
             self._logger.info(f"Successfully executed command: {command}")
 
@@ -179,6 +226,13 @@ class CodeOverseer:
             while not done_received:
                 res_codebase_file_paths = self.list_staging_file_paths()
                 if res_codebase_file_paths.is_err():
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": f"Failed to list code file paths: {res_codebase_file_paths.message}"},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
                     return Result.err(f"Failed to list code file paths: {res_codebase_file_paths.message}")
                 codebase_file_paths = res_codebase_file_paths.unwrap()
 
@@ -192,11 +246,25 @@ class CodeOverseer:
                 if res_reprompt.is_err():
                     self._logger.error(f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}")
                     self._logger.keypoint(f"Failed to get code change reprompt from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}"},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
                     return Result.err(f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}")
                 reprompt_commands = res_reprompt.unwrap()
                 if len(reprompt_commands) == 0:
                     self._logger.error("Prompt manager returned zero reprompt commands")
                     self._logger.keypoint("Reprompt returned zero commands!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": "Prompt manager returned zero reprompt commands"},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
                     return Result.err("Prompt manager returned zero reprompt commands")
                 self._logger.info(f"Received {len(reprompt_commands)} reprompt commands from prompt manager")
                 self._logger.keypoint(f"Received {len(reprompt_commands)} commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
@@ -211,6 +279,13 @@ class CodeOverseer:
                     res_execution = command.execute(self._code_overseer_configuration.code_staging_directory_path)
                     if res_execution.is_err():
                         self._logger.error(f"Failed to execute reprompt command {command}: {res_execution.message}")
+                        self._logger.experiment(
+                            experiment_notification.format_experiment_event_message(
+                                "COMPLETED",
+                                {"status": "FAILURE", "message": f"Failed to execute reprompt command {command}: {res_execution.message}"},
+                            ),
+                            event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                        )
                         return Result.err(f"Failed to execute reprompt command {command}: {res_execution.message}")
                     self._logger.info(f"Successfully executed reprompt command: {command}")
                 
@@ -226,7 +301,30 @@ class CodeOverseer:
             self._logger.info("Testing if generated code builds correctly")
             self._logger.keypoint(f"Testing if generated code builds correctly", event_type=keypoint_notification.EventTypes.INFO)
             # Start error fix prompt and command execution while build fails
-            while (res_build_test := self._code_build_test_provider.try_build()).is_ok() and res_build_test.value.is_success == False:
+            while True:
+                self._logger.experiment(
+                    experiment_notification.format_experiment_event_message("REQ_TO_TESTBUILDER_SENT"),
+                    event_type=experiment_notification.ExperimentEventTypes.INFO,
+                )
+                res_build_test = self._code_build_test_provider.try_build()
+
+                if res_build_test.is_err():
+                    self._logger.keypoint("Build test result acquisition failed!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    self._logger.error(f"Build test result acquisition failed: {res_build_test.message}")
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": f"Build test result acquisition failed: {res_build_test.message}"},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
+                    return Result.err(f"Build test result acquisition failed: {res_build_test.message}")
+
+                if res_build_test.value.is_success:
+                    self._logger.keypoint("Code passed the build test!", event_type=keypoint_notification.EventTypes.SUCCESS)
+                    self._logger.info(f"Code passed the build test.")
+                    break
+
                 self._logger.keypoint("Code test build failed. Will have to fix this", event_type=keypoint_notification.EventTypes.WARNING)
                 self._logger.warning("Code test build failed. Trying to generate fixes.")
                 
@@ -236,12 +334,26 @@ class CodeOverseer:
                 if res_code_fix_commands.is_err():
                     self._logger.error(f"Failed to get code fixes from prompt manager: {res_code_fix_commands.message}")
                     self._logger.keypoint(f"Failed to get code fixes from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": f"Failed to get code fixes from prompt manager: {res_code_fix_commands.message}"},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
                     return Result.err(f"Failed to get code fixes from prompt manager: {res_code_fix_commands.message}")
                 # Execute all the commands
                 code_fix_commands = res_code_fix_commands.value
                 if len(code_fix_commands) == 0:
                     self._logger.error("Prompt manager returned zero code fix commands")
                     self._logger.keypoint("Code fix prompt returned zero commands!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": "Prompt manager returned zero code fix commands"},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
                     return Result.err("Prompt manager returned zero code fix commands")
                 self._logger.info(f"Received {len(code_fix_commands)} code fix commands from prompt manager")
                 self._logger.keypoint(f"Received {len(code_fix_commands)} code fix commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
@@ -249,34 +361,57 @@ class CodeOverseer:
                     res_code_fix_execution = code_fix_command.execute(self._code_overseer_configuration.code_staging_directory_path)
                     if res_code_fix_execution.is_err():
                         self._logger.error(f"Failed to execute code fix command {code_fix_command}: {res_code_fix_execution.message}")
+                        self._logger.experiment(
+                            experiment_notification.format_experiment_event_message(
+                                "COMPLETED",
+                                {"status": "FAILURE", "message": f"Failed to execute code fix command {code_fix_command}: {res_code_fix_execution.message}"},
+                            ),
+                            event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                        )
                         return Result.err(f"Failed to execute code fix command {code_fix_command}: {res_code_fix_execution.message}")
                     self._logger.info(f"Successfully executed code fix command: {code_fix_command}")
                     self._logger.info(f"Executed code fix command: {code_fix_command}")
                 self._logger.keypoint(f"Executed {len(code_fix_commands)} code fix commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
-            # Stop if the build request failed
-            if res_build_test.is_err():
-                self._logger.keypoint("Build test result acquisition failed!", event_type=keypoint_notification.EventTypes.FAILURE)
-                self._logger.error(f"Build test result acquisition failed: {res_build_test.message}")
-                return Result.err(f"Build test result acquisition failed: {res_build_test.message}")
-            # Just log if the code has passed the build test
-            if res_build_test.is_ok() and res_build_test.value.is_success:
-                self._logger.keypoint("Code passed the build test!", event_type=keypoint_notification.EventTypes.SUCCESS)
-                self._logger.info(f"Code passed the build test.")
 
         self._logger.keypoint(f"Code changes applied successfully in staging area. Copying changes back to codebase...", event_type=keypoint_notification.EventTypes.INFO)
         # Copy staging back to codebase
         res_copy_back = self._copy_staging_to_codebase()
         if res_copy_back.is_err():
+            self._logger.experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": f"Failed to copy staging back to codebase: {res_copy_back.message}"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err(f"Failed to copy staging back to codebase: {res_copy_back.message}")
         self._logger.info("Successfully copied staging back to codebase")
+        self._logger.experiment(
+            experiment_notification.format_experiment_event_message("CODE_IN_PRODUCTION"),
+            event_type=experiment_notification.ExperimentEventTypes.INFO,
+        )
         
         # Clean staging directory
         res_remove_staging = self._clean_staging_directory()
         if res_remove_staging.is_err():
+            self._logger.experiment(
+                experiment_notification.format_experiment_event_message(
+                    "COMPLETED",
+                    {"status": "FAILURE", "message": f"Failed to remove staging directory: {res_remove_staging.message}"},
+                ),
+                event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+            )
             return Result.err(f"Failed to remove staging directory: {res_remove_staging.message}")
         self._logger.info("Successfully removed staging directory")
 
         self._logger.keypoint(f"Code changes successfully applied to codebase! Your changes should be live soon!", event_type=keypoint_notification.EventTypes.SUCCESS)
+        self._logger.experiment(
+            experiment_notification.format_experiment_event_message(
+                "COMPLETED",
+                {"status": "SUCCESS", "message": "Code change request completed successfully"},
+            ),
+            event_type=experiment_notification.ExperimentEventTypes.SUCCESS,
+        )
 
         return Result.ok(Unit())
 
