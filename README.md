@@ -40,7 +40,7 @@ Configuration section:
 ```
 "ExperimentNotification": {
     "Enabled": true,
-    "Endpoint": "http://experiment-director:8002/track-event",
+    "Endpoint": "http://experiment-director:8002/notify",
     "ComponentName": "Code Overseer"
 }
 ```
