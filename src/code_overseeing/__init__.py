@@ -152,6 +152,10 @@ class CodeOverseer:
             self._logger.keypoint(f"Failed to get code change commands from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
             return Result.err(f"Failed to get code change commands from prompt manager: {res_code_change_commands.message}")
         code_change_commands = res_code_change_commands.unwrap()
+        if len(code_change_commands) == 0:
+            self._logger.error("Prompt manager returned zero code change commands")
+            self._logger.keypoint("Prompt returned zero code change commands!", event_type=keypoint_notification.EventTypes.FAILURE)
+            return Result.err("Prompt manager returned zero code change commands")
         self._logger.info(f"Received {len(code_change_commands)} code change commands from prompt manager")
         self._logger.keypoint(f"Received {len(code_change_commands)} code change commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.SUCCESS)
 
@@ -190,6 +194,10 @@ class CodeOverseer:
                     self._logger.keypoint(f"Failed to get code change reprompt from prompt!", event_type=keypoint_notification.EventTypes.FAILURE)
                     return Result.err(f"Failed to get code change reprompt from prompt manager: {res_reprompt.message}")
                 reprompt_commands = res_reprompt.unwrap()
+                if len(reprompt_commands) == 0:
+                    self._logger.error("Prompt manager returned zero reprompt commands")
+                    self._logger.keypoint("Reprompt returned zero commands!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    return Result.err("Prompt manager returned zero reprompt commands")
                 self._logger.info(f"Received {len(reprompt_commands)} reprompt commands from prompt manager")
                 self._logger.keypoint(f"Received {len(reprompt_commands)} commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
                 
@@ -231,6 +239,10 @@ class CodeOverseer:
                     return Result.err(f"Failed to get code fixes from prompt manager: {res_code_fix_commands.message}")
                 # Execute all the commands
                 code_fix_commands = res_code_fix_commands.value
+                if len(code_fix_commands) == 0:
+                    self._logger.error("Prompt manager returned zero code fix commands")
+                    self._logger.keypoint("Code fix prompt returned zero commands!", event_type=keypoint_notification.EventTypes.FAILURE)
+                    return Result.err("Prompt manager returned zero code fix commands")
                 self._logger.info(f"Received {len(code_fix_commands)} code fix commands from prompt manager")
                 self._logger.keypoint(f"Received {len(code_fix_commands)} code fix commands from prompt response! Executing commands...", event_type=keypoint_notification.EventTypes.INFO)
                 for code_fix_command in code_fix_commands:
