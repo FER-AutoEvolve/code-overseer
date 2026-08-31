@@ -33,6 +33,10 @@ The code overseer component repository with dockerization. Accepts a strategic c
 
 4. Reset the codebase directory by running `python ./reset_codebase.py`.
 
+## Prompting providers
+
+Set `Prompting.Provider` to `openai` to use any OpenAI model. This provider requires a non-empty `Prompting.ProviderConfig.Model` value, for example `gpt-4.1-mini`. The existing `openai_gpt_4_1` and `openai_gpt_5` providers remain available and keep their pinned models.
+
 ## Run in docker
 > This container is intended to be run as part of a docker compose and not specifically as a standalone container
 

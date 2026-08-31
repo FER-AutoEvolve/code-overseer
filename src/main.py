@@ -24,6 +24,9 @@ def resolve_prompt_manager(prompting_configuration: PromptingConfiguration, logg
     if prompting_configuration.provider == PromptingProviders.OPENAI_GPT_4_1:
         from prompting.openai_gpt_4_1 import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))
+    elif prompting_configuration.provider == PromptingProviders.OPENAI:
+        from prompting.openai import PromptManager
+        return Result.ok(PromptManager(prompting_configuration, logger))
     elif prompting_configuration.provider == PromptingProviders.OPENAI_GPT_5:
         from prompting.openai_gpt_5 import PromptManager
         return Result.ok(PromptManager(prompting_configuration, logger))

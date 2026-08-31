@@ -28,7 +28,7 @@ class OpenAiConfiguration:
         try:
             return Result.ok(OpenAiConfiguration(
                 api_key=config.get("ApiKey", ""),
-                model=config.get("Model", "gpt-4o"),
+                model=config.get("Model", "gpt-4.1"),
                 max_tokens=config.get("MaxTokens", 200),
                 temperature=config.get("Temperature", None),
                 top_p=config.get("TopP", None),
