@@ -9,7 +9,7 @@ from core import Result, Unit
 import os
 import gitmatch
 import keypoint_notification
-from prompting.openai import BasePromptManager
+from prompting import BasePromptManager
 from prompting.prompts import GetCodeChangeCommandsPromptContext
 from code_overseeing.code_commands import CodeCommand, CommandTypes
 
