@@ -9,107 +9,303 @@ from code_overseeing.code_commands import AddCodeCommand, CodeCommand, DeleteCod
 from configuration import CodeCommandStrategies
 from core import Result
 from prompting.openai.configuration import OpenAiConfiguration
-from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_token_usage
-
-
-def _create_file_data(code_file_paths: List[str], code_command_strategy: CodeCommandStrategies) -> List[dict]:
-    file_data: List[dict] = []
-    for file_path in code_file_paths:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
-            code_text = file.read()
-            if code_command_strategy == CodeCommandStrategies.ADD_DELETE:
-                code_text = _set_line_markers(code_text)
-            file_data.append({
-                "role": "user",
-                "content": [{"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_text}\n```"}],
-            })
-    return file_data
-
+from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_prompt_event, log_prompt_response_event, log_token_usage
 
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
+    '''Implementation of IGetCodeChangeCommandsPrompt using OpenAI API.'''
     _conf: OpenAiConfiguration
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
     _client: openai.OpenAI = dataclasses.field(init=False)
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "_client", openai.OpenAI(api_key=self._conf.api_key, timeout=self._conf.timeout))
+        object.__setattr__(self, '_client', openai.OpenAI(
+            api_key=self._conf.api_key, 
+            timeout=self._conf.timeout
+        ))
 
     def execute(self, context: GetCodeChangeCommandsPromptContext) -> Result[List[CodeCommand]]:
-        return self._execute(context, context.strategic_change_description)
-
-    def _execute(self, context: GetCodeChangeCommandsPromptContext | GetCodeChangeCommandsRepromptContext | GetCodeFixCommandsPromptContext, prompt_content: str) -> Result[List[CodeCommand]]:
         try:
+            self._logger.debug(f"Calling OpenAI API for code change commands with {len(context.code_file_paths)} code files")
+
+            # Prepare codebase files as text
+            file_data: List[dict] = []
+            for file_path in context.code_file_paths:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
+                    if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
+                        code_txt = _set_line_markers(code_txt)
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+
+            # The prompt input with the strategic description (user story) and the code files
+            prompt_input = [{
+                "role": "user",
+                "content": context.strategic_change_description
+            }] + file_data
+
+            # Create prompt
+            log_prompt_event(self._logger, "INIT_PROMPT_SENT")
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
                 temperature=self._conf.temperature,
                 top_p=self._conf.top_p,
-                instructions=context.codebase_description + "\n" + context.code_change_command_operational_instruction,
-                input=[{"role": "user", "content": prompt_content}] + _create_file_data(context.code_file_paths, context.code_command_strategy),
+                instructions=prompt_preamble,
+                input=prompt_input
             )
-            log_token_usage(self._logger, response, "OpenAI")
-            return _parse_response(response.output_text, context.code_command_strategy == CodeCommandStrategies.ADD_DELETE)
-        except Exception as error:
-            self._logger.error(f"OpenAI API call failed: {error}")
-            return Result.err(f"OpenAI API call failed: {error}")
 
+            log_token_usage(self._logger, response, "OpenAI")
+
+            response_text = response.output_text
+            log_prompt_response_event(self._logger, "INIT_PROMPT_RESPONSE", response, response_text)
+
+            self._logger.debug("OpenAI API call successful, parsing response")
+            code_commands: List[CodeCommand] = _parse_response(
+                response_text,
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+            )
+            self._logger.debug(f"Parsed {len(code_commands)} code commands")
+            
+            return Result.ok(code_commands)
+
+        except Exception as e:
+            self._logger.error(f"OpenAI API call failed: {e}")
+            return Result.err(f"OpenAI API call failed: {e}")
+        
 
 @dataclasses.dataclass(frozen=True)
 class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
-    _conf: OpenAiConfiguration
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
-    _delegate: GetCodeChangeCommandsPrompt = dataclasses.field(init=False)
+    '''Implementation of IGetCodeChangeReprompt using OpenAI API.'''
+    _openai_settings: OpenAiConfiguration
+    _openai_client: openai.OpenAI = dataclasses.field(init=False)
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "_delegate", GetCodeChangeCommandsPrompt(self._conf, self._logger))
+        object.__setattr__(self, '_openai_client', openai.OpenAI(
+            api_key=self._openai_settings.api_key, 
+            timeout=self._openai_settings.timeout
+        ))
 
     def execute(self, context: GetCodeChangeCommandsRepromptContext) -> Result[List[CodeCommand]]:
-        return self._delegate._execute(context, context.strategic_change_description)
+        try:
+            self._logger.debug(f"Calling OpenAI API for code change reprompt with {len(context.code_file_paths)} code files")
 
+            # Prepare codebase files as text
+            file_data: List[dict] = []
+            for file_path in context.code_file_paths:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
+                    if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
+                        code_txt = _set_line_markers(code_txt)
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
 
+            # The prompt input with the strategic description (user story) and the code files
+            prompt_input = [{
+                "role": "user",
+                "content": context.strategic_change_description
+            }] + file_data
+
+            # Create prompt
+            log_prompt_event(self._logger, "RE_PROMPT_SENT")
+            response = self._openai_client.responses.create(
+                model=self._openai_settings.model,
+                max_output_tokens=self._openai_settings.max_tokens,
+                temperature=self._openai_settings.temperature,
+                top_p=self._openai_settings.top_p,
+                instructions=prompt_preamble,
+                input=prompt_input
+            )
+
+            log_token_usage(self._logger, response, "OpenAI")
+
+            response_text = response.output_text
+            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text)
+            self._logger.debug("OpenAI API call successful, parsing response")
+            code_commands: List[CodeCommand] = _parse_response(
+                response_text,
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+                )
+            self._logger.debug(f"Parsed {len(code_commands)} code commands")
+            return Result.ok(code_commands)
+        except Exception as e:
+            self._logger.error(f"OpenAI API call failed: {e}")
+            return Result.err(f"OpenAI API call failed: {e}")
+        
 @dataclasses.dataclass(frozen=True)
 class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
-    _conf: OpenAiConfiguration
-    _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
-    _delegate: GetCodeChangeCommandsPrompt = dataclasses.field(init=False)
+    '''Implementation of IGetCodeFixCommandsPrompt using OpenAI API.'''
+    _openai_settings: OpenAiConfiguration
+    _openai_client: openai.OpenAI = dataclasses.field(init=False)
+    _logger: logging.Logger = dataclasses.field(default=logging.getLogger(__name__))
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "_delegate", GetCodeChangeCommandsPrompt(self._conf, self._logger))
+        object.__setattr__(self, '_openai_client', openai.OpenAI(
+            api_key=self._openai_settings.api_key, 
+            timeout=self._openai_settings.timeout
+        ))
 
     def execute(self, context: GetCodeFixCommandsPromptContext) -> Result[List[CodeCommand]]:
-        prompt_content = f"Fix this current error:\n{context.error_description}\nThis is what must be implemented: \n{context.strategic_change_description}"
-        return self._delegate._execute(context, prompt_content)
+        try:
+            self._logger.debug(f"Calling OpenAI API for code change reprompt with {len(context.code_file_paths)} code files")
+
+            # Prepare codebase files as text
+            file_data: List[dict] = []
+            for file_path in context.code_file_paths:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    code_txt =  f.read()
+                    # Add line markers if using ADD/DELETE strategy
+                    if context.code_command_strategy == CodeCommandStrategies.ADD_DELETE:
+                        code_txt = _set_line_markers(code_txt)
+                    
+                    file_data.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": f"FILE: {file_path}\n```{file_path}\n{code_txt}\n```"}
+                            ]
+                        }
+                    )
+            # The prompt preamble for the prompt instruction
+            # Contains the codebase description and the operational instructions on how to provide the commands
+            prompt_preamble: str = context.codebase_description + "\n" + context.code_change_command_operational_instruction
+
+            # Prompt content
+            prompt_content = "Fix this current error:\n" + context.error_description \
+                + "\nThis is what must be implemented: \n" + context.strategic_change_description
+                
+
+            # The prompt input with the strategic description (user story) and the code files
+            prompt_input = [{
+                "role": "user",
+                "content": prompt_content
+            }] + file_data
+
+            # Create prompt
+            log_prompt_event(self._logger, "CODEFIX_PROMPT_SENT")
+            response = self._openai_client.responses.create(
+                model=self._openai_settings.model,
+                max_output_tokens=self._openai_settings.max_tokens,
+                temperature=self._openai_settings.temperature,
+                top_p=self._openai_settings.top_p,
+                instructions=prompt_preamble,
+                input=prompt_input
+            )
+
+            log_token_usage(self._logger, response, "OpenAI")
+
+            response_text = response.output_text
+            log_prompt_response_event(self._logger, "CODEFIX_PROMPT_RESPONSE", response, response_text)
+            self._logger.debug("OpenAI API call successful, parsing response")
+            code_commands: List[CodeCommand] = _parse_response(
+                response_text,
+                remove_line_markers=context.code_command_strategy == CodeCommandStrategies.ADD_DELETE # Remove line markers if using ADD/DELETE strategy
+                )
+            self._logger.debug(f"Parsed {len(code_commands)} code commands")
+            return Result.ok(code_commands)
+        except Exception as e:
+            self._logger.error(f"OpenAI API call failed: {e}")
+            return Result.err(f"OpenAI API call failed: {e}")
 
 
-def _parse_response(response_text: str, remove_line_markers: bool = False) -> Result[List[CodeCommand]]:
+@staticmethod
+def _parse_response( response_text: str, remove_line_markers: bool = False) -> Result[List[CodeCommand]]:
+    '''
+    Parses the response text from OpenAI into a list of CodeCommand objects using the individual command parse methods.
+    Args:
+        response_text (str): The raw response text from OpenAI.
+    '''
     if remove_line_markers:
         response_text = _remove_line_markers(response_text)
-
+    from code_overseeing.code_commands import AddCodeCommand, DeleteCodeCommand, CommandTypes, CodeCommand, UpdateFileCommand, DoneCommand
+    import re
     commands: List[CodeCommand] = []
-    patterns = [
-        (re.compile(r"ADD\s*\[.*?\]\s*\[\d+\]\s*\[\[.*?\]\]", re.DOTALL), AddCodeCommand, "ADD"),
-        (re.compile(r"DELETE\s*\[.*?\]\s*\[\d+-\d+\]"), DeleteCodeCommand, "DELETE"),
-        (re.compile(r"UPDATE_FILE\s*\[.*?\]\s*\[\[.*?\]\]", re.DOTALL), UpdateFileCommand, "UPDATE_FILE"),
-    ]
-    for pattern, command_type, command_name in patterns:
-        for match in pattern.finditer(response_text):
-            command = command_type.parse(match.group(0))
-            if command.is_ok():
-                commands.append(command.unwrap())
-            else:
-                return Result.err(f"Failed to parse {command_name} command: {command.message}")
 
-    for match in re.compile(r"DONE").finditer(response_text):
-        command = DoneCommand.parse(match.group(0))
-        if command.is_ok():
-            commands.append(command.unwrap())
-    return Result.ok(commands)
+    # Find all ADD commands
+    add_pattern = re.compile(r"ADD\s*\[.*?\]\s*\[\d+\]\s*\[\[.*?\]\]", re.DOTALL)
+    for add_match in add_pattern.finditer(response_text):
+        cmd_str = add_match.group(0)
+        res_cmd = AddCodeCommand.parse(cmd_str)
+        if res_cmd.is_ok():
+            commands.append(res_cmd.unwrap())
+        else:
+            return Result.err(f"Failed to parse ADD command: {res_cmd.message}")
+        
+    # Find all DELETE commands
+    delete_pattern = re.compile(r"DELETE\s*\[.*?\]\s*\[\d+-\d+\]")
+    for del_match in delete_pattern.finditer(response_text):
+        cmd_str = del_match.group(0)
+        res_cmd = DeleteCodeCommand.parse(cmd_str)
+        if res_cmd.is_ok():
+            commands.append(res_cmd.unwrap())
+        else:
+            return Result.err(f"Failed to parse DELETE command: {res_cmd.message}")
 
+    # Find all UPDATE_FILE commands
+    update_pattern = re.compile(r"UPDATE_FILE\s*\[.*?\]\s*\[\[.*?\]\]", re.DOTALL)
+    for update_match in update_pattern.finditer(response_text):
+        cmd_str = update_match.group(0)
+        res_cmd = UpdateFileCommand.parse(cmd_str)
+        if res_cmd.is_ok():
+            commands.append(res_cmd.unwrap())
+        else:
+            return Result.err(f"Failed to parse UPDATE_FILE command: {res_cmd.message}")
+    
+    # Find all DONE commands
+    done_pattern = re.compile(r"DONE")
+    for done_match in done_pattern.finditer(response_text):
+        cmd_str = done_match.group(0)
+        res_cmd = DoneCommand.parse(cmd_str)
+        if res_cmd.is_ok():
+            commands.append(res_cmd.unwrap())
+    return commands
+    
+@staticmethod
+def _set_line_markers(code_txt: str) -> str:
+    '''
+    Sets line markers as comments in the code text for easier reference. //LN:digits+
+    Args:
+        code_txt (str): The original code text.
+    Returns:
+        str: The code text with line markers added.
+    '''
+    lines = code_txt.splitlines()
+    marked_lines = [f"//LN:{i+1} {line}" for i, line in enumerate(lines)]
+    return "\n".join(marked_lines)
 
-def _set_line_markers(code_text: str) -> str:
-    return "\n".join(f"//LN:{index + 1} {line}" for index, line in enumerate(code_text.splitlines()))
-
-
-def _remove_line_markers(code_text: str) -> str:
-    return "\n".join(re.sub(r"//LN:\d+", "", line) if line.startswith("//LN:") else line for line in code_text.splitlines())
+@staticmethod
+def _remove_line_markers(code_txt: str) -> str:
+    '''
+    Removes line markers from the code text.
+    Args:
+        code_txt (str): The code text with line markers.
+    Returns:
+        str: The code text without line markers.
+    '''
+    import re
+    lines = code_txt.splitlines()
+    cleaned_lines = [re.sub(r"//LN:\d+", "", line) if line.startswith("//LN:") else line for line in lines]
+    return "\n".join(cleaned_lines)
