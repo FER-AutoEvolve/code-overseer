@@ -8,6 +8,7 @@ from core import Result, Unit
 
 class PromptingProviders(Enum):
     ''' Enumeration of supported LLM providers.'''
+    OPENAI = "openai"
     OPENAI_GPT_4_1 = "openai_gpt_4_1"
     OPENAI_GPT_5 = "openai_gpt_5"
     GPT_OSS_20B = "gpt_oss_20b"
@@ -46,6 +47,8 @@ class PromptingConfiguration:
             codebase_description = config.get("CodebaseDescription", "")
             code_command_strategy = CodeCommandStrategies(config.get("CodeCommandStrategy", "").lower())
             provider_config = config.get("ProviderConfig", {})
+            if provider == PromptingProviders.OPENAI and not str(provider_config.get("Model", "")).strip():
+                return Result.err("OpenAI prompting configuration requires 'ProviderConfig.Model' to be set.")
             return Result.ok(PromptingConfiguration(
                 provider=provider,
                 codebase_description=codebase_description,
