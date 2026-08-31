@@ -2,7 +2,7 @@
     "Prompting": {
         "CodebaseDescription": "Codebase description goes here.",
         "CodeCommandStrategy": "update_file",
-        "Provider": "openai",
+        "Provider": "openai_gpt_4_1",
         "ProviderConfig": {
             "Url": "",
             "ApiKey": "",

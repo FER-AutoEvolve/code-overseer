@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y gettext-base
 # Set arguments for environment variables (one per line)
 ARG CODEBASE_DESCRIPTION="Default description"
 ARG CODE_COMMAND_STRATEGY="update_file"
-ARG PROMPTING_PROVIDER="OpenAI"
+ARG PROMPTING_PROVIDER="openai_gpt_4_1"
 ARG PROMPTING_URL=""
 ARG PROMPTING_API_KEY="your-api-key"
 ARG PROMPTING_MODEL="gpt-4.1"

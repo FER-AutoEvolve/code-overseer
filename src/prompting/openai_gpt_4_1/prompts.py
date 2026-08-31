@@ -5,7 +5,7 @@ from code_overseeing.code_commands import CodeCommand
 from configuration import CodeCommandStrategies
 from core import Result
 import openai
-from prompting.openai.configuration import OpenAiConfiguration
+from prompting.openai_gpt_4_1.configuration import OpenAiConfiguration
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeFixCommandsPromptContext, IGetCodeChangeCommandsPrompt, GetCodeChangeCommandsRepromptContext, IGetCodeChangeCommandsReprompt, IGetCodeFixCommandsPrompt, log_prompt_event, log_prompt_response_event, log_token_usage
 
 
