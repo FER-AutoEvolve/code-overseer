@@ -72,7 +72,7 @@ class KeypointNotificationConfiguration:
         try:
             enabled = config.get("Enabled", True)
             endpoint = config.get("Endpoint", "")
-            if not endpoint:
+            if enabled and not endpoint:
                 return Result.err("KeypointNotification configuration requires 'Endpoint' to be set.")
             return Result.ok(KeypointNotificationConfiguration(
                 enabled=enabled,
