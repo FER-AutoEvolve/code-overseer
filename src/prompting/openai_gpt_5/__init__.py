@@ -40,13 +40,29 @@ class PromptManager(BasePromptManager):
             return Result.err(f"Error executing prompt: {error}")
 
     def execute_code_change_commands_prompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
-        prompt_context = GetCodeChangeCommandsPromptContext(strategic_description, code_file_paths, self._prompting_configuration.codebase_description, self._prompting_configuration.code_command_strategy)
+        prompt_context = GetCodeChangeCommandsPromptContext(
+            strategic_change_description=strategic_description,
+            codebase_description=self._prompting_configuration.codebase_description,
+            code_command_strategy=self._prompting_configuration.code_command_strategy,
+            code_file_paths=code_file_paths,
+        )
         return GetCodeChangeCommandsPrompt(self._openai_configuration, self._logger).execute(prompt_context)
 
     def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
-        prompt_context = GetCodeChangeCommandsRepromptContext(strategic_description, code_file_paths, self._prompting_configuration.codebase_description, self._prompting_configuration.code_command_strategy)
+        prompt_context = GetCodeChangeCommandsRepromptContext(
+            strategic_change_description=strategic_description,
+            codebase_description=self._prompting_configuration.codebase_description,
+            code_command_strategy=self._prompting_configuration.code_command_strategy,
+            code_file_paths=code_file_paths,
+        )
         return GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger).execute(prompt_context)
 
     def execute_code_fix_prompt(self, strategic_description: str, error_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
-        prompt_context = GetCodeFixCommandsPromptContext(strategic_description, code_file_paths, error_description, self._prompting_configuration.codebase_description, self._prompting_configuration.code_command_strategy)
+        prompt_context = GetCodeFixCommandsPromptContext(
+            strategic_change_description=strategic_description,
+            error_description=error_description,
+            codebase_description=self._prompting_configuration.codebase_description,
+            code_command_strategy=self._prompting_configuration.code_command_strategy,
+            code_file_paths=code_file_paths,
+        )
         return GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger).execute(prompt_context)
