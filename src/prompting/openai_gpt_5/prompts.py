@@ -56,8 +56,8 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
             # Create prompt
             response = self._client.responses.create(
                 model=self._conf.model,
-                max_output_tokens=self._conf.max_tokens,
-                temperature=self._conf.temperature,
+                #max_output_tokens=self._conf.max_tokens,
+                #temperature=self._conf.temperature,
                 top_p=self._conf.top_p,
                 instructions=prompt_preamble,
                 input=prompt_input
@@ -129,8 +129,8 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
             response = self._openai_client.responses.create(
                 model=self._openai_settings.model,
                 max_output_tokens=self._openai_settings.max_tokens,
-                temperature=self._openai_settings.temperature,
-                top_p=self._openai_settings.top_p,
+                #temperature=self._openai_settings.temperature,
+                #top_p=self._openai_settings.top_p,
                 instructions=prompt_preamble,
                 input=prompt_input
             )
@@ -202,8 +202,8 @@ class GetCodeFixCommandsPrompt(IGetCodeFixCommandsPrompt):
             response = self._openai_client.responses.create(
                 model=self._openai_settings.model,
                 max_output_tokens=self._openai_settings.max_tokens,
-                temperature=self._openai_settings.temperature,
-                top_p=self._openai_settings.top_p,
+                #temperature=self._openai_settings.temperature,
+                #top_p=self._openai_settings.top_p,
                 instructions=prompt_preamble,
                 input=prompt_input
             )
