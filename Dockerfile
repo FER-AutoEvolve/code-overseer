@@ -10,7 +10,7 @@ COPY ./configuration.template.json /app/configuration.template.json
 RUN pip install --upgrade pip && \
     pip install -r ./requirements.txt
 
-RUN apt-get update && apt-get install -y gettext-base
+RUN apt-get update && apt-get install -y gettext-base curl
 
 
 # Set arguments for environment variables (one per line)
