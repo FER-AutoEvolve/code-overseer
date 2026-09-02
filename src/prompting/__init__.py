@@ -39,12 +39,13 @@ class BasePromptManager:
         pass
 
     @abstractmethod
-    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]], reprompt_number: Optional[int] = None) -> Result[List[CodeCommand]]:
         '''
         Executes a reprompt after code changes have been made, to determine if further changes are needed.
         Parameters:
             strategic_description (str): Description of the desired changes.
             code_file_paths (Optional[List[str]]): List of code file paths to consider. 
+            reprompt_number (Optional[int]): Current reprompt ordinal for telemetry correlation.
         Returns:
             Result[List[CodeCommand]]: A list of code change commands or an error message.
         '''

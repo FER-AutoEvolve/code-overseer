@@ -206,7 +206,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 "content": context.strategic_change_description
             }] + file_data
 
-            log_prompt_event(self._logger, "RE_PROMPT_SENT")
+            log_prompt_event(self._logger, "RE_PROMPT_SENT", {"reprompt_number": context.reprompt_number})
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -222,7 +222,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
-            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text)
+            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text, extra_payload={"reprompt_number": context.reprompt_number})
             import datetime
             write_result = write_response_to_file(response_text, f"./reprompt_response_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             self._logger.debug("Nemotron 3 Super API call successful, parsing response")

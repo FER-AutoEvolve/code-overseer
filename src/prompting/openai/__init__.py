@@ -44,12 +44,13 @@ class PromptManager(BasePromptManager):
         )
         return GetCodeChangeCommandsPrompt(self._openai_configuration, self._logger).execute(prompt_context)
 
-    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]], reprompt_number: Optional[int] = None) -> Result[List[CodeCommand]]:
         prompt_context = GetCodeChangeCommandsRepromptContext(
             strategic_change_description=strategic_description,
             codebase_description=self._prompting_configuration.codebase_description,
             code_command_strategy=self._prompting_configuration.code_command_strategy,
             code_file_paths=code_file_paths,
+            reprompt_number=reprompt_number,
         )
         return GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger).execute(prompt_context)
 

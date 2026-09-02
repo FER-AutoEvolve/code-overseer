@@ -145,7 +145,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
             }] + file_data
 
             # Create prompt
-            log_prompt_event(self._logger, "RE_PROMPT_SENT")
+            log_prompt_event(self._logger, "RE_PROMPT_SENT", {"reprompt_number": context.reprompt_number})
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -157,7 +157,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
             log_token_usage(self._logger, response, "GPT OSS 20B")
 
             response_text = response.output_text
-            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text)
+            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text, extra_payload={"reprompt_number": context.reprompt_number})
             self._logger.debug("GPT OSS 20B API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,

@@ -240,7 +240,8 @@ class CodeOverseer:
                 self._logger.keypoint(f"Executing code change reprompt no. {reprompt_attempts + 1}", event_type=keypoint_notification.EventTypes.INFO)
                 res_reprompt = self._prompt_manager.execute_code_change_reprompt(
                     strategic_description=change_strategic_description,
-                    code_file_paths=codebase_file_paths
+                    code_file_paths=codebase_file_paths,
+                    reprompt_number=reprompt_attempts + 1,
                 )
 
                 if res_reprompt.is_err():

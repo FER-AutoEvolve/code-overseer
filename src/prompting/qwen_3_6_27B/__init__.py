@@ -50,14 +50,15 @@ class PromptManager(BasePromptManager):
         prompt = GetCodeChangeCommandsPrompt(self._configuration, self._logger)
         return prompt.execute(prompt_context)
 
-    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]]) -> Result[List[CodeCommand]]:
+    def execute_code_change_reprompt(self, strategic_description: str, code_file_paths: Optional[List[str]], reprompt_number: Optional[int] = None) -> Result[List[CodeCommand]]:
         self._logger.info("Preparing code change reprompt context")
 
         prompt_context = GetCodeChangeCommandsRepromptContext(
             strategic_change_description=strategic_description,
             code_file_paths=code_file_paths,
             codebase_description=self._prompting_configuration.codebase_description,
-            code_command_strategy=self._prompting_configuration.code_command_strategy
+            code_command_strategy=self._prompting_configuration.code_command_strategy,
+            reprompt_number=reprompt_number,
         )
         prompt = GetCodeChangeCommandsReprompt(self._configuration, self._logger)
         return prompt.execute(prompt_context)

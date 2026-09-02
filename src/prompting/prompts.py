@@ -70,6 +70,7 @@ class GetCodeChangeCommandsRepromptContext:
     codebase_description: str
     code_command_strategy: CodeCommandStrategies
     code_file_paths: List[str] = dataclasses.field(default_factory=list)
+    reprompt_number: Optional[int] = None
     code_change_command_operational_instruction: str = dataclasses.field(init=False)
 
     def __post_init__(self):
@@ -213,6 +214,7 @@ def log_prompt_response_event(
     event_name: str,
     response: object,
     response_text: str,
+    extra_payload: Optional[Dict[str, Any]] = None,
     event_type: experiment_notification.ExperimentEventTypes = experiment_notification.ExperimentEventTypes.INFO,
 ) -> None:
     '''
@@ -222,4 +224,8 @@ def log_prompt_response_event(
         "tokens": extract_token_usage(response),
         "response_text": response_text,
     }
+
+    if extra_payload:
+        payload.update(extra_payload)
+
     log_prompt_event(logger, event_name, payload=payload, event_type=event_type)

@@ -175,7 +175,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 "content": context.strategic_change_description
             }] + file_data
 
-            log_prompt_event(self._logger, "RE_PROMPT_SENT")
+            log_prompt_event(self._logger, "RE_PROMPT_SENT", {"reprompt_number": context.reprompt_number})
             response = self._client.responses.create(
                 model=self._conf.model,
                 max_output_tokens=self._conf.max_tokens,
@@ -191,7 +191,7 @@ class GetCodeChangeCommandsReprompt(IGetCodeChangeCommandsReprompt):
                 return Result.err(response_text_result.message)
 
             response_text = response_text_result.unwrap()
-            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text)
+            log_prompt_response_event(self._logger, "RE_PROMPT_RESPONSE", response, response_text, extra_payload={"reprompt_number": context.reprompt_number})
             self._logger.debug("Gemma 4 26B A4B QAT API call successful, parsing response")
             code_commands: List[CodeCommand] = _parse_response(
                 response_text,
