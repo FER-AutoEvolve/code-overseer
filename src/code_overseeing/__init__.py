@@ -225,8 +225,12 @@ class CodeOverseer:
         if self._code_build_test_provider:
             self._logger.info("Testing if generated code builds correctly")
             self._logger.keypoint(f"Testing if generated code builds correctly", event_type=keypoint_notification.EventTypes.INFO)
+            build_attempts = 0
+            max_build_attempts = self._code_build_test_provider.max_build_attempts()
             # Start error fix prompt and command execution while build fails
-            while (res_build_test := self._code_build_test_provider.try_build()).is_ok() and res_build_test.value.is_success == False:
+            while build_attempts < max_build_attempts and (res_build_test := self._code_build_test_provider.try_build()).is_ok() and res_build_test.value.is_success == False:
+                build_attempts += 1
+                self._logger.info(f"Build test attempt {build_attempts}/{max_build_attempts} failed. Trying to generate fixes.")
                 self._logger.keypoint("Code test build failed. Will have to fix this", event_type=keypoint_notification.EventTypes.WARNING)
                 self._logger.warning("Code test build failed. Trying to generate fixes.")
                 
@@ -253,6 +257,11 @@ class CodeOverseer:
                     self._logger.info(f"Successfully executed code fix command: {code_fix_command}")
                     self._logger.info(f"Executed code fix command: {code_fix_command}")
                 self._logger.keypoint(f"Executed {len(code_fix_commands)} code fix commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
+            if res_build_test.is_ok() and res_build_test.value.is_success == False and build_attempts >= max_build_attempts:
+                message = f"Code test build failed after reaching max attempts ({max_build_attempts})"
+                self._logger.keypoint(message, event_type=keypoint_notification.EventTypes.FAILURE)
+                self._logger.error(message)
+                return Result.err(message)
             # Stop if the build request failed
             if res_build_test.is_err():
                 self._logger.keypoint("Build test result acquisition failed!", event_type=keypoint_notification.EventTypes.FAILURE)
