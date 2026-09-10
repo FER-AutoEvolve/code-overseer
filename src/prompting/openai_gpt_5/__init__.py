@@ -7,8 +7,8 @@ import openai
 from code_overseeing.code_commands import CodeCommand
 from core import Result
 from prompting import BasePromptManager
-from prompting.openai.configuration import OpenAiConfiguration
-from prompting.openai.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeCommandsReprompt, GetCodeFixCommandsPrompt
+from prompting.openai_gpt_5.configuration import OpenAiConfiguration
+from prompting.openai_gpt_5.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeCommandsReprompt
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext, GetCodeFixCommandsPromptContext
 
 
@@ -18,10 +18,14 @@ class PromptManager(BasePromptManager):
     _logger: logging.Logger = dataclasses.field(default=logging.getLogger())
 
     def __post_init__(self):
+        provider_config = {
+            **self._prompting_configuration.provider_config,
+            "Model": "gpt-5",
+        }
         object.__setattr__(
             self,
             "_openai_configuration",
-            OpenAiConfiguration.from_dict(self._prompting_configuration.provider_config).unwrap(),
+            OpenAiConfiguration.from_dict(provider_config).unwrap(),
         )
 
     def execute_raw_prompt(self, prompt_text: str) -> Result[str]:
@@ -61,4 +65,4 @@ class PromptManager(BasePromptManager):
             code_command_strategy=self._prompting_configuration.code_command_strategy,
             code_file_paths=code_file_paths,
         )
-        return GetCodeFixCommandsPrompt(self._openai_configuration, self._logger).execute(prompt_context)
+        return GetCodeChangeCommandsReprompt(self._openai_configuration, self._logger).execute(prompt_context)

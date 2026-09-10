@@ -9,6 +9,8 @@ from core import Result, Unit
 class PromptingProviders(Enum):
     ''' Enumeration of supported LLM providers.'''
     OPENAI = "openai"
+    OPENAI_GPT_4_1 = "openai_gpt_4_1"
+    OPENAI_GPT_5 = "openai_gpt_5"
     GPT_OSS_20B = "gpt_oss_20b"
     GPT_OSS_120B = "gpt_oss_120b"
     NEMOTRON_3_SUPER = "nemotron_3_super"
@@ -45,6 +47,8 @@ class PromptingConfiguration:
             codebase_description = config.get("CodebaseDescription", "")
             code_command_strategy = CodeCommandStrategies(config.get("CodeCommandStrategy", "").lower())
             provider_config = config.get("ProviderConfig", {})
+            if provider == PromptingProviders.OPENAI and not str(provider_config.get("Model", "")).strip():
+                return Result.err("OpenAI prompting configuration requires 'ProviderConfig.Model' to be set.")
             return Result.ok(PromptingConfiguration(
                 provider=provider,
                 codebase_description=codebase_description,
@@ -72,7 +76,7 @@ class KeypointNotificationConfiguration:
         try:
             enabled = config.get("Enabled", True)
             endpoint = config.get("Endpoint", "")
-            if not endpoint:
+            if enabled and not endpoint:
                 return Result.err("KeypointNotification configuration requires 'Endpoint' to be set.")
             return Result.ok(KeypointNotificationConfiguration(
                 enabled=enabled,
