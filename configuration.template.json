@@ -43,6 +43,7 @@
     "CodeBuildTesting":{
         "Enabled": ${CODE_BUILD_TESTING_ENABLE},
         "Endpoint": "${CODE_BUILD_TESTING_ENDPOINT}",
-        "Timeout": ${CODE_BUILD_TESTING_TIMEOUT}
+        "Timeout": ${CODE_BUILD_TESTING_TIMEOUT},
+        "MaxBuildAttempts": ${CODE_BUILD_TESTING_MAX_BUILD_ATTEMPTS}
     }
 }

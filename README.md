@@ -58,6 +58,18 @@ logger.experiment(
 Payload contains component name, event timestamp, event message, and event type (`Failure` / `Success` / `Info`).
 This pathway is exclusive and does not write to ordinary logging handlers (console/file).
 
+## Code build testing limits
+Use `CodeBuildTesting.MaxBuildAttempts` to cap how many build-test iterations can run while applying automatic code fixes.
+
+```
+"CodeBuildTesting": {
+    "Enabled": true,
+    "Endpoint": "http://code-build-tester:2000/try-build",
+    "Timeout": 10000,
+    "MaxBuildAttempts": 5
+}
+```
+
 ## Prompting providers
 
 Set `Prompting.Provider` to `openai` to use any OpenAI model. This provider requires a non-empty `Prompting.ProviderConfig.Model` value, for example `gpt-4.1-mini`. The existing `openai_gpt_4_1` and `openai_gpt_5` providers remain available and keep their pinned models.
@@ -69,7 +81,7 @@ The Dockerfile contains two stages. The `base` stage only starts the code-overse
 
 1. Build the Docker image: 
 
-    `docker build -t code-overseer --build-args PORT=3000 .`
+    `docker build -t code-overseer --build-arg FASTAPI_PORT=3000 --build-arg CODE_BUILD_TESTING_MAX_BUILD_ATTEMPTS=5 .`
 
 2. Run the Docker container:
 

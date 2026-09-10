@@ -301,8 +301,12 @@ class CodeOverseer:
         if self._code_build_test_provider:
             self._logger.info("Testing if generated code builds correctly")
             self._logger.keypoint(f"Testing if generated code builds correctly", event_type=keypoint_notification.EventTypes.INFO)
+            build_attempts = 0
+            max_build_attempts = self._code_build_test_provider.max_build_attempts()
             # Start error fix prompt and command execution while build fails
-            while True:
+            while build_attempts < max_build_attempts:
+                build_attempts += 1
+                self._logger.info(f"Starting build test attempt {build_attempts}/{max_build_attempts}")
                 self._logger.experiment(
                     experiment_notification.format_experiment_event_message("REQ_TO_TESTBUILDER_SENT"),
                     event_type=experiment_notification.ExperimentEventTypes.INFO,
@@ -328,6 +332,19 @@ class CodeOverseer:
 
                 self._logger.keypoint("Code test build failed. Will have to fix this", event_type=keypoint_notification.EventTypes.WARNING)
                 self._logger.warning("Code test build failed. Trying to generate fixes.")
+
+                if build_attempts >= max_build_attempts:
+                    message = f"Code test build failed after reaching max attempts ({max_build_attempts})"
+                    self._logger.keypoint(message, event_type=keypoint_notification.EventTypes.FAILURE)
+                    self._logger.error(message)
+                    self._logger.experiment(
+                        experiment_notification.format_experiment_event_message(
+                            "COMPLETED",
+                            {"status": "FAILURE", "message": message},
+                        ),
+                        event_type=experiment_notification.ExperimentEventTypes.FAILURE,
+                    )
+                    return Result.err(message)
                 
                 # Get the error message and execute a prompt to get the commands
                 build_test_error = res_build_test.value.error_message

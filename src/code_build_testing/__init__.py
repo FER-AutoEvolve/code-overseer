@@ -30,6 +30,9 @@ class BuildResultDto:
 class CodeBuildTestProvider:
     _configuration: CodeBuildTestingConfiguration
 
+    def max_build_attempts(self) -> int:
+        return self._configuration.max_build_attempts
+
     def try_build(self) -> Result[BuildResultDto]:
         try:
             response = requests.get(self._configuration.code_build_tester_endpoint, timeout=self._configuration.timeout)
