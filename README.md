@@ -35,7 +35,7 @@ The code overseer component repository with dockerization. Accepts a strategic c
 
 ## Prompting providers
 
-Set `Prompting.Provider` to `openai` to use any OpenAI model. This provider requires a non-empty `Prompting.ProviderConfig.Model` value, for example `gpt-4.1-mini`. The existing `openai_gpt_4_1` and `openai_gpt_5` providers remain available and keep their pinned models.
+Set `Prompting.Provider` to `openai` to use any OpenAI model. This provider requires a non-empty `Prompting.ProviderConfig.Model` value, for example `gpt-4.1-mini`. The existing `openai_gpt_4_1`, `openai_gpt_5`, and `openai_gpt_5_mini` providers remain available and keep their pinned models.
 
 ## Code build testing limits
 Use `CodeBuildTesting.MaxBuildAttempts` to cap how many build-test iterations can run while applying automatic code fixes.
