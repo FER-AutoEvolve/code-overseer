@@ -7,8 +7,8 @@ import openai
 from code_overseeing.code_commands import CodeCommand
 from core import Result
 from prompting import BasePromptManager
-from prompting.openai_gpt_5.configuration import OpenAiConfiguration
-from prompting.openai_gpt_5.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeCommandsReprompt, GetCodeFixCommandsPrompt
+from prompting.openai_gpt_5_mini.configuration import OpenAiConfiguration
+from prompting.openai_gpt_5_mini.prompts import GetCodeChangeCommandsPrompt, GetCodeChangeCommandsReprompt, GetCodeFixCommandsPrompt
 from prompting.prompts import GetCodeChangeCommandsPromptContext, GetCodeChangeCommandsRepromptContext, GetCodeFixCommandsPromptContext
 
 
