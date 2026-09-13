@@ -25,7 +25,8 @@
         "IncludeOnlyPatterns": [
             ${CODE_INCLUDE_ONLY_PATTERNS}
         ],
-        "RepromptOnChange": ${REPROMPT_ON_CHANGE}
+        "RepromptOnChange": ${REPROMPT_ON_CHANGE},
+        "RepromptMaxAttempts": ${REPROMPT_MAX_ATTEMPTS}
     },
     "FastApi": {
         "Host": "0.0.0.0",

@@ -223,7 +223,9 @@ class CodeOverseer:
             self._logger.keypoint(f"Starting reprompting for additional code changes", event_type=keypoint_notification.EventTypes.INFO)
             done_received: bool = False
             reprompt_attempts: int = 0
-            while not done_received:
+            max_attempts = self._code_overseer_configuration.reprompt_max_attempts
+            # Continue until DONE or until we've reached max attempts (if configured)
+            while not done_received and (max_attempts is None or reprompt_attempts < max_attempts):
                 res_codebase_file_paths = self.list_staging_file_paths()
                 if res_codebase_file_paths.is_err():
                     self._logger.experiment(
@@ -293,9 +295,12 @@ class CodeOverseer:
                 self._logger.info(f"Finished executing reprompt {reprompt_attempts + 1} commands")
                 self._logger.keypoint(f"Successfully executed all {len(reprompt_commands)} reprompt commands!", event_type=keypoint_notification.EventTypes.SUCCESS)
                 reprompt_attempts += 1
-
-            self._logger.info(f"Finished reprompting after {reprompt_attempts} attempts")
-            self._logger.keypoint(f"Finished reprompting after {reprompt_attempts} attempts", event_type=keypoint_notification.EventTypes.SUCCESS)
+            if done_received:
+                self._logger.info(f"Finished reprompting after {reprompt_attempts} attempts")
+                self._logger.keypoint(f"Finished reprompting after {reprompt_attempts} attempts", event_type=keypoint_notification.EventTypes.SUCCESS)
+            else:
+                self._logger.info(f"Stopped reprompting after reaching max attempts: {reprompt_attempts}")
+                self._logger.keypoint(f"Stopped reprompting after reaching max attempts: {reprompt_attempts}", event_type=keypoint_notification.EventTypes.INFO)
         
         # Initiate code build test if enabled
         if self._code_build_test_provider:
