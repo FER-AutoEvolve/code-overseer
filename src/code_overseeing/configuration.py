@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List
+from typing import List, Optional
 
 from core import Result
 
@@ -13,6 +13,7 @@ class CodeOverseerConfiguration:
     '''
     code_directory_path: str
     reprompt_on_change: bool = False
+    reprompt_max_attempts: Optional[int] = None
     ignore_patterns: List[str] = dataclasses.field(default_factory=list)
     include_only_patterns: List[str] = dataclasses.field(default_factory=list)
     code_staging_directory_path: str = dataclasses.field(default=__DEFAULT_CODE_STAGING_DIRECTORY_PATH__)
@@ -32,7 +33,25 @@ class CodeOverseerConfiguration:
                 , ignore_patterns=settings.get("IgnorePatterns", [])
                 , include_only_patterns=settings.get("IncludeOnlyPatterns", [])
                 , reprompt_on_change=settings.get("RepromptOnChange", False)
+                , reprompt_max_attempts=CodeOverseerConfiguration._parse_optional_int(settings.get("RepromptMaxAttempts", None))
                 , code_staging_directory_path=settings.get("CodeStagingDirectory", __DEFAULT_CODE_STAGING_DIRECTORY_PATH__)
             ))
         except ValueError as e:
             return Result.err(f"Invalid Code Overseer settings: {e}")
+
+    @staticmethod
+    def _parse_optional_int(value) -> Optional[int]:
+        # Accept JSON null -> None, empty string -> None, or numeric values
+        if value is None:
+            return None
+        if isinstance(value, str):
+            v = value.strip().lower()
+            if v == "" or v == "null":
+                return None
+            try:
+                return int(v)
+            except ValueError:
+                raise ValueError(f"RepromptMaxAttempts must be an integer or null or empty string, got '{value}'")
+        if isinstance(value, (int, float)):
+            return int(value)
+        raise ValueError(f"RepromptMaxAttempts must be an integer or null or empty string, got '{value}'")
