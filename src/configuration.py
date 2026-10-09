@@ -11,6 +11,7 @@ class PromptingProviders(Enum):
     OPENAI = "openai"
     OPENAI_GPT_4_1 = "openai_gpt_4_1"
     OPENAI_GPT_5 = "openai_gpt_5"
+    OPENAI_GPT_6_LUNA = "openai_gpt_6_luna"
     OPENAI_GPT_5_MINI = "openai_gpt_5_mini"
     OPENAI_GPT_5_NANO = "openai_gpt_5_nano"
     GPT_OSS_20B = "gpt_oss_20b"
