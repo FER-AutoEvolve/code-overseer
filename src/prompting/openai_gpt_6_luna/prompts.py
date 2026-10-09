@@ -59,7 +59,7 @@ class GetCodeChangeCommandsPrompt(IGetCodeChangeCommandsPrompt):
                 model=self._conf.model,
                 #max_output_tokens=self._conf.max_tokens,
                 #temperature=self._conf.temperature,
-                top_p=self._conf.top_p,
+                #top_p=self._conf.top_p,
                 instructions=prompt_preamble,
                 input=prompt_input
             )
